@@ -39,6 +39,7 @@ Main runtime features:
 - Product search, zero-result fallback, graph recommendations, comparison, checkout link creation, adapter preview, and adapter validation.
 - ChatGPT Apps widget resources and CSP handling.
 - Merchant profiles for Shinsegae, Lotte, Lotte Hi-Mart, Olive Young, Daiso, and Amore Pacific.
+- Added runtime merchant profiles for Sulwhasoo US and Innisfree JP after public Shopify catalog collection.
 - Sample products remain for merchants without real datasets, but real collected datasets replace sample overlap for collected merchants.
 
 Important runtime endpoint:
@@ -63,6 +64,14 @@ Collected datasets:
 | Amore Mall | `data/amore-products.raw.json` | `data/amore-products.normalized.json` | 500 | Public product detail pages |
 | Olive Young | `data/olive-young-products.raw.json` | `data/olive-young-products.normalized.json` | 500 | Public sitemap + product detail-data endpoint |
 | Lotte Hi-Mart | `data/lotte-himart-products.raw.json` | `data/lotte-himart-products.normalized.json` | 500 | Public sitemap + Schema.org Product JSON-LD |
+| Sulwhasoo US | `data/sulwhasoo-us-products.raw.json` | `data/sulwhasoo-us-products.normalized.json` | 115 | Public Shopify products JSON |
+| Innisfree JP | `data/innisfree-jp-products.raw.json` | `data/innisfree-jp-products.normalized.json` | 127 | Public Shopify products JSON |
+
+Candidate-only dataset:
+
+| Source | Raw file | Normalized file | Count | Status |
+| --- | --- | --- | ---: | --- |
+| COSRX Korea | `data/cosrx-korea-products.raw.json` | `data/cosrx-korea-products.normalized.json` | 216 URL candidates, 0 normalized products | MakeShop detail/category pages returned anti-abuse block content to the collector IP. Do not bypass; use approved feed/API or explicit permission. |
 
 Collection status files:
 
@@ -84,15 +93,16 @@ The following sources were checked and recorded in `docs/data-collection-todo-v2
 - COSRX Korea: `https://cosrx.co.kr/robots.txt`
   - Allows `/`, disallows `/makeshop/`.
   - Sitemap has 216 product-like `shop/shopdetail.html` URLs.
-  - V2 needs a MakeShop sitemap/detail parser.
+  - Raw URL candidates are saved in `data/cosrx-korea-products.raw.json`.
+  - Detail/category requests returned MakeShop anti-abuse block content, so runtime normalization remains blocked pending approved feed/API or permission.
 - Sulwhasoo US: `https://us.sulwhasoo.com/robots.txt`
   - Shopify storefront, public product catalog allowed.
   - UCP/MCP discovery available.
-  - Public Shopify JSON returned 115 products.
+  - Public Shopify JSON collector implemented; 115 normalized products saved.
 - Innisfree JP: `https://www.innisfree.jp/robots.txt`
   - Shopify storefront, public product catalog allowed.
   - UCP/MCP discovery available.
-  - Public Shopify JSON returned 127 products.
+  - Public Shopify JSON collector implemented; 127 normalized products saved.
 
 ## V2 Backlog
 
@@ -108,9 +118,9 @@ Current blocked or incomplete merchants:
 - Lotte Wellfood: valid robots/source still needs confirmation.
 - Lotte Chilsung: official commerce source still needs confirmation.
 - CJ OnStyle: robots response ambiguous, returned HTML during audit.
-- COSRX: collectable-looking source, but V2 parser needed.
-- Sulwhasoo US: generic Shopify/UCP collector needed; only 115 public products.
-- Innisfree JP: generic Shopify/UCP collector needed; only 127 public products.
+- COSRX: candidate URL collection exists, but detail normalization is blocked by MakeShop anti-abuse response.
+- Sulwhasoo US: runtime collector implemented; 500 requires variants, bundles, additional locales, or partner feed.
+- Innisfree JP: runtime collector implemented; 500 requires variants, additional locales, or partner feed.
 
 ## Commands
 
@@ -166,6 +176,8 @@ Runtime catalog counts after cleanup:
 - `amore-pacific`: 500
 - `olive-young`: 500
 - `lotte-himart`: 500
+- `sulwhasoo-us`: 115
+- `innisfree-jp`: 127
 - `shinsegae`: 3 sample products
 - `lotte`: 3 sample products
 - `daiso`: 2 sample products
@@ -175,6 +187,7 @@ Runtime catalog counts after cleanup:
 - `src/data/catalog.ts` removes sample products for a merchant when a real collected dataset exists.
 - `src/mcp/resources.ts` includes CSP image/redirect domains for Amore, Olive Young, and Hi-Mart.
 - `scripts/collect-merchant-products.ts` supports `COLLECT_MERCHANTS` so a single merchant can be refreshed without re-running all collectors.
+- `scripts/collect-merchant-products.ts` includes Shopify catalog collection for Sulwhasoo US and Innisfree JP, and COSRX sitemap-candidate capture.
 - `scripts/lib/robots.ts` provides robots parsing, audit, allow/disallow evaluation, and crawl-delay support.
 - Logs and pid files are intentionally ignored through `.gitignore`.
 

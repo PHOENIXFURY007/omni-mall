@@ -3,6 +3,8 @@ export const MERCHANT_IDS = [
   "lotte",
   "lotte-himart",
   "olive-young",
+  "sulwhasoo-us",
+  "innisfree-jp",
   "daiso",
   "amore-pacific",
 ] as const;

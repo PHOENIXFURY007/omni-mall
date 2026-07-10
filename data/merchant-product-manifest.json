@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-10T06:42:00.000Z",
+  "generatedAt": "2026-07-10T08:55:42.599Z",
   "targetProductsPerMerchant": 500,
   "merchants": [
     {
@@ -25,6 +25,34 @@
       "targetCount": 500,
       "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\lotte-himart-products.raw.json",
       "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\lotte-himart-products.normalized.json"
+    },
+    {
+      "merchantId": "sulwhasoo-us",
+      "status": "collected",
+      "count": 115,
+      "targetCount": 500,
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\sulwhasoo-us-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\sulwhasoo-us-products.normalized.json",
+      "reason": "Public Shopify catalog returned 115 product-level records."
+    },
+    {
+      "merchantId": "innisfree-jp",
+      "status": "collected",
+      "count": 127,
+      "targetCount": 500,
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\innisfree-jp-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\innisfree-jp-products.normalized.json",
+      "reason": "Public Shopify catalog returned 127 product-level records."
+    },
+    {
+      "merchantId": "cosrx-korea",
+      "status": "candidate_only",
+      "count": 0,
+      "candidateCount": 216,
+      "targetCount": 500,
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\cosrx-korea-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\cosrx-korea-products.normalized.json",
+      "reason": "Sitemap candidates saved, but MakeShop detail/category pages returned anti-abuse block content to the collector IP."
     }
   ]
 }

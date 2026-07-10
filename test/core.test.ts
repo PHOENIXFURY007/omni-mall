@@ -61,6 +61,6 @@ test("validates sample merchant adapters", () => {
   const preview = previewMerchantAdapters();
   const validation = validateMerchantMappings();
 
-  assert.equal(preview.coverage.merchantCount, 6);
+  assert.equal(preview.coverage.merchantCount, 8);
   assert.ok(validation.results.every((result) => result.ok));
 });

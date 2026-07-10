@@ -2,6 +2,7 @@ import type { MerchantId, MerchantProfile, Product } from "../types.js";
 import { loadCollectedAmoreProducts } from "./amore-loader.js";
 import { loadCollectedHimartProducts } from "./himart-loader.js";
 import { loadCollectedOliveYoungProducts } from "./olive-loader.js";
+import { loadCollectedInnisfreeProducts, loadCollectedSulwhasooProducts } from "./shopify-loader.js";
 
 export const MERCHANT_PROFILES: Record<MerchantId, MerchantProfile> = {
   "shinsegae": {
@@ -47,6 +48,28 @@ export const MERCHANT_PROFILES: Record<MerchantId, MerchantProfile> = {
     capabilities: ["search", "similarity", "availability", "external_checkout", "routine_context"],
     requiredFields: ["productId", "title", "brand", "price", "stockStatus", "productUrl"],
     notes: ["Can reuse the local olive-poc product/routine patterns for later API integration."],
+  },
+  "sulwhasoo-us": {
+    merchantId: "sulwhasoo-us",
+    displayName: "Sulwhasoo US",
+    aliases: ["sulwhasoo", "sulwhasoo us", "luxury skincare", "beauty"],
+    sourceType: "marketplace_api",
+    status: "sample_ready",
+    authProfile: "session_bound_oauth",
+    capabilities: ["search", "similarity", "availability", "external_checkout", "ucp_ready"],
+    requiredFields: ["productId", "title", "brand", "price", "stockStatus", "productUrl"],
+    notes: ["Collected from public Shopify products.json; UCP/MCP discovery is available for future cart/checkout integration."],
+  },
+  "innisfree-jp": {
+    merchantId: "innisfree-jp",
+    displayName: "Innisfree JP",
+    aliases: ["innisfree", "innisfree japan", "j beauty", "beauty"],
+    sourceType: "marketplace_api",
+    status: "sample_ready",
+    authProfile: "session_bound_oauth",
+    capabilities: ["search", "similarity", "availability", "external_checkout", "ucp_ready"],
+    requiredFields: ["productId", "title", "brand", "price", "stockStatus", "productUrl"],
+    notes: ["Collected from public Shopify products.json; UCP/MCP discovery is available for future cart/checkout integration."],
   },
   "daiso": {
     merchantId: "daiso",
@@ -403,3 +426,5 @@ function replaceSampleProductsWhenCollected(merchantId: MerchantId, collectedPro
 replaceSampleProductsWhenCollected("amore-pacific", loadCollectedAmoreProducts());
 replaceSampleProductsWhenCollected("olive-young", loadCollectedOliveYoungProducts());
 replaceSampleProductsWhenCollected("lotte-himart", loadCollectedHimartProducts());
+replaceSampleProductsWhenCollected("sulwhasoo-us", loadCollectedSulwhasooProducts());
+replaceSampleProductsWhenCollected("innisfree-jp", loadCollectedInnisfreeProducts());

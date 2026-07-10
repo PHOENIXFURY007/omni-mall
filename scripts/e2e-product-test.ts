@@ -215,9 +215,9 @@ async function main(): Promise<void> {
       merchants: unknown[];
     }>(baseUrl, 7, "merchant_adapter_preview", {});
     assert.equal(adapters.type, "merchant_adapter_preview");
-    assert.equal(adapters.coverage.merchantCount, 6);
+    assert.equal(adapters.coverage.merchantCount, 8);
     assert.ok(adapters.coverage.sampleProductCount >= 10);
-    assert.equal(adapters.merchants.length, 6);
+    assert.equal(adapters.merchants.length, 8);
 
     const validation = await callTool<{
       type: "merchant_mapping_validation";

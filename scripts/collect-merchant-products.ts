@@ -51,6 +51,44 @@ interface HimartRawProduct {
   product: Record<string, unknown>;
 }
 
+interface ShopifyVariant {
+  id?: number;
+  title?: string;
+  sku?: string | null;
+  available?: boolean;
+  price?: string;
+  compare_at_price?: string | null;
+}
+
+interface ShopifyImage {
+  src?: string;
+}
+
+interface ShopifyProduct {
+  id: number;
+  title: string;
+  handle: string;
+  body_html?: string;
+  vendor?: string;
+  product_type?: string;
+  tags?: string[];
+  variants?: ShopifyVariant[];
+  images?: ShopifyImage[];
+  published_at?: string;
+  updated_at?: string;
+}
+
+interface ShopifyMerchantConfig {
+  merchantId: "sulwhasoo-us" | "innisfree-jp";
+  merchantName: string;
+  baseUrl: string;
+  rawOutput: string;
+  normalizedOutput: string;
+  targetCount: number;
+  originalCurrency: "USD" | "JPY";
+  krwRate: number;
+}
+
 interface CollectionResult {
   sourceId: string;
   status: "collected" | "skipped" | "failed";
@@ -94,9 +132,24 @@ const HIMART_RAW_OUTPUT = join(dataDir, "lotte-himart-products.raw.json");
 const HIMART_NORMALIZED_OUTPUT = join(dataDir, "lotte-himart-products.normalized.json");
 const HIMART_TARGET_COUNT = Math.max(1, Number(process.env.HIMART_TARGET_COUNT ?? MERCHANT_TARGET_COUNT));
 const HIMART_REQUEST_DELAY_MS = Math.max(0, Number(process.env.HIMART_REQUEST_DELAY_MS ?? 150));
+const COSRX_BASE_URL = "https://cosrx.co.kr";
+const COSRX_SITEMAP_URL = `${COSRX_BASE_URL}/sitemap.xml`;
+const COSRX_RAW_OUTPUT = join(dataDir, "cosrx-korea-products.raw.json");
+const COSRX_NORMALIZED_OUTPUT = join(dataDir, "cosrx-korea-products.normalized.json");
+const COSRX_TARGET_COUNT = Math.max(1, Number(process.env.COSRX_TARGET_COUNT ?? MERCHANT_TARGET_COUNT));
+const SULWHASOO_BASE_URL = "https://us.sulwhasoo.com";
+const SULWHASOO_RAW_OUTPUT = join(dataDir, "sulwhasoo-us-products.raw.json");
+const SULWHASOO_NORMALIZED_OUTPUT = join(dataDir, "sulwhasoo-us-products.normalized.json");
+const SULWHASOO_TARGET_COUNT = Math.max(1, Number(process.env.SULWHASOO_TARGET_COUNT ?? MERCHANT_TARGET_COUNT));
+const INNISFREE_BASE_URL = "https://www.innisfree.jp";
+const INNISFREE_RAW_OUTPUT = join(dataDir, "innisfree-jp-products.raw.json");
+const INNISFREE_NORMALIZED_OUTPUT = join(dataDir, "innisfree-jp-products.normalized.json");
+const INNISFREE_TARGET_COUNT = Math.max(1, Number(process.env.INNISFREE_TARGET_COUNT ?? MERCHANT_TARGET_COUNT));
 const NETWORK_RETRY_ATTEMPTS = Math.max(1, Number(process.env.COLLECT_NETWORK_RETRY_ATTEMPTS ?? 5));
 const NETWORK_RETRY_BASE_MS = Math.max(250, Number(process.env.COLLECT_NETWORK_RETRY_BASE_MS ?? 5000));
 const USD_KRW_RATE = Number(process.env.OLIVE_USD_KRW_RATE ?? 1350);
+const SHOPIFY_USD_KRW_RATE = Number(process.env.SHOPIFY_USD_KRW_RATE ?? 1350);
+const SHOPIFY_JPY_KRW_RATE = Number(process.env.SHOPIFY_JPY_KRW_RATE ?? 9.2);
 
 function compactIsoForFilename(value: string): string {
   return value.replace(/[:.]/g, "-");
@@ -140,6 +193,29 @@ function cleanTags(values: Array<unknown>): string[] {
       .map((value) => String(value ?? "").trim())
       .filter(Boolean),
   )).slice(0, 18);
+}
+
+function stripHtml(value: unknown): string {
+  return decodeHtmlEntities(String(value ?? ""))
+    .replace(/<br\s*\/?>/gi, " ")
+    .replace(/<[^>]+>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function toKrwPrice(originalPrice: number, krwRate: number): number {
+  return Math.max(1000, Math.round((originalPrice * krwRate) / 10) * 10);
+}
+
+function firstUsableVariant(product: ShopifyProduct): ShopifyVariant | undefined {
+  const variants = Array.isArray(product.variants) ? product.variants : [];
+  return variants.find((variant) => variant.available) ?? variants[0];
+}
+
+function firstShopifyImage(product: ShopifyProduct): string | undefined {
+  const image = Array.isArray(product.images) ? product.images.find((candidate) => candidate.src)?.src : undefined;
+  if (!image) return undefined;
+  return image.startsWith("//") ? `https:${image}` : image;
 }
 
 function normalizeOliveProduct(product: OlivePocProduct, collectedAt: string): Product | null {
@@ -790,6 +866,210 @@ async function collectHimart(audit: RobotsAuditResult | undefined, collectedAt: 
   };
 }
 
+function robotsAllowsPath(audit: RobotsAuditResult | undefined, pathPrefix: string): boolean {
+  if (!audit?.ok) return false;
+  const decision = audit.decisions.find((candidate) => candidate.path.startsWith(pathPrefix));
+  return decision?.allowed !== false;
+}
+
+async function fetchShopifyProducts(baseUrl: string, targetCount: number): Promise<ShopifyProduct[]> {
+  const products: ShopifyProduct[] = [];
+  for (let page = 1; products.length < targetCount; page += 1) {
+    const url = `${baseUrl}/products.json?limit=250&page=${page}`;
+    const response = await withNetworkRetry(`GET ${url}`, async () => {
+      const fetched = await fetch(url, {
+        headers: {
+          "user-agent": DEFAULT_COLLECTOR_USER_AGENT,
+          "accept": "application/json",
+          "accept-language": "en-US,en;q=0.9,ko;q=0.8,ja;q=0.7",
+        },
+      });
+      if (!fetched.ok) throw new Error(`${url} returned HTTP ${fetched.status}`);
+      return fetched;
+    });
+    const body = await response.json() as { products?: ShopifyProduct[] };
+    const pageProducts = Array.isArray(body.products) ? body.products : [];
+    if (!pageProducts.length) break;
+    products.push(...pageProducts);
+    if (pageProducts.length < 250) break;
+  }
+  return products.slice(0, targetCount);
+}
+
+function normalizeShopifyProduct(
+  config: ShopifyMerchantConfig,
+  product: ShopifyProduct,
+  collectedAt: string,
+): Product | null {
+  const variant = firstUsableVariant(product);
+  const originalPrice = numberFrom(variant?.price);
+  if (!product.id || !product.title || !product.handle || !variant || variant.price === undefined || variant.price === null) return null;
+
+  const productType = product.product_type?.trim() || "Beauty";
+  const tags = Array.isArray(product.tags) ? product.tags : [];
+  const categoryPath = ["Beauty", productType].filter(Boolean);
+  const productUrl = `${config.baseUrl}/products/${product.handle}`;
+  const sku = variant.sku?.trim() || `${product.id}-${variant.id ?? "default"}`;
+  const description = stripHtml(product.body_html).slice(0, 700);
+
+  return {
+    merchantId: config.merchantId,
+    merchantName: config.merchantName,
+    productId: `${config.merchantId}-${product.id}`,
+    sku,
+    title: product.title.trim(),
+    brand: product.vendor?.trim() || config.merchantName,
+    domain: "beauty",
+    categoryPath,
+    attributes: {
+      source: "shopify-products-json",
+      productId: String(product.id),
+      variantId: String(variant.id ?? ""),
+      handle: product.handle,
+      description,
+      originalCurrency: config.originalCurrency,
+      originalPrice: originalPrice,
+      compareAtPrice: numberFrom(variant.compare_at_price),
+      exchangeRateToKrw: config.krwRate,
+      productType,
+      shopifyTags: tags.slice(0, 12),
+    },
+    price: originalPrice > 0 ? toKrwPrice(originalPrice, config.krwRate) : 0,
+    currency: "KRW",
+    stockStatus: variant.available === false ? "out_of_stock" : "in_stock",
+    rating: 0,
+    reviewCount: 0,
+    tags: cleanTags([
+      "beauty",
+      config.merchantName,
+      product.vendor,
+      productType,
+      ...tags,
+      ...product.title.split(/\s+/).slice(0, 8),
+    ]),
+    productUrl,
+    checkoutUrl: productUrl,
+    imageUrl: firstShopifyImage(product),
+    metadataQuality: description ? 0.9 : 0.86,
+    sourceUpdatedAt: product.updated_at ?? collectedAt,
+  };
+}
+
+async function collectShopifyMerchant(
+  config: ShopifyMerchantConfig,
+  audit: RobotsAuditResult | undefined,
+  collectedAt: string,
+): Promise<CollectionResult> {
+  if (!robotsAllowsPath(audit, "/products.json")) {
+    return {
+      sourceId: config.merchantId,
+      status: "skipped",
+      count: 0,
+      targetCount: config.targetCount,
+      reason: "Current robots policy does not allow the sampled Shopify products.json path for this collector.",
+    };
+  }
+
+  const rawProducts = await fetchShopifyProducts(config.baseUrl, config.targetCount);
+  const normalizedProducts = rawProducts
+    .map((product) => normalizeShopifyProduct(config, product, collectedAt))
+    .filter((product): product is Product => Boolean(product));
+
+  await writeJson(config.rawOutput, {
+    merchantId: config.merchantId,
+    source: "shopify-products-json",
+    productsJsonUrl: `${config.baseUrl}/products.json`,
+    ucpDiscoveryUrl: `${config.baseUrl}/.well-known/ucp`,
+    collectionPolicy: "Public Shopify products.json catalog. robots.txt checked before collection; checkout/cart/account paths are not collected.",
+    robotsAudit: audit,
+    targetCount: config.targetCount,
+    count: rawProducts.length,
+    collectedAt,
+    products: rawProducts,
+  });
+  await writeJson(config.normalizedOutput, {
+    merchantId: config.merchantId,
+    source: "shopify-products-json",
+    targetCount: config.targetCount,
+    count: normalizedProducts.length,
+    collectedAt,
+    products: normalizedProducts,
+  });
+
+  return {
+    sourceId: config.merchantId,
+    status: normalizedProducts.length ? "collected" : "failed",
+    count: normalizedProducts.length,
+    targetCount: config.targetCount,
+    rawOutput: config.rawOutput,
+    normalizedOutput: config.normalizedOutput,
+    reason: normalizedProducts.length < config.targetCount
+      ? `Collected ${normalizedProducts.length}/${config.targetCount}; public Shopify catalog returned fewer product-level records.`
+      : undefined,
+  };
+}
+
+function cosrxProductIdFromUrl(value: string): string {
+  try {
+    return new URL(value).searchParams.get("branduid") ?? value;
+  } catch {
+    return value;
+  }
+}
+
+async function collectCosrxCandidates(audit: RobotsAuditResult | undefined, collectedAt: string): Promise<CollectionResult> {
+  if (!robotsAllowsPath(audit, "/sitemap.xml")) {
+    return {
+      sourceId: "cosrx-korea",
+      status: "skipped",
+      count: 0,
+      targetCount: COSRX_TARGET_COUNT,
+      reason: "Current robots policy does not allow sitemap inspection for this collector.",
+    };
+  }
+
+  const sitemapXml = await fetchText(COSRX_SITEMAP_URL, "application/xml,text/xml,*/*;q=0.8");
+  const productUrls = extractLocValues(sitemapXml)
+    .map((url) => url.replace(/^http:\/\/www\.cosrx\.co\.kr/i, COSRX_BASE_URL))
+    .filter((url) => /\/shop\/shopdetail\.html/i.test(url))
+    .slice(0, COSRX_TARGET_COUNT);
+
+  await writeJson(COSRX_RAW_OUTPUT, {
+    merchantId: "cosrx-korea",
+    source: "cosrx-sitemap-product-candidates",
+    sitemapUrl: COSRX_SITEMAP_URL,
+    collectionPolicy: "robots.txt allows sitemap/product candidate discovery. Detail/category pages returned a MakeShop anti-abuse page for the collector IP, so normalized product metadata is not generated.",
+    robotsAudit: audit,
+    targetCount: COSRX_TARGET_COUNT,
+    count: productUrls.length,
+    collectedAt,
+    products: productUrls.map((productUrl) => ({
+      productUrl,
+      productId: cosrxProductIdFromUrl(productUrl),
+      status: "candidate_only",
+    })),
+  });
+  await writeJson(COSRX_NORMALIZED_OUTPUT, {
+    merchantId: "cosrx-korea",
+    source: "cosrx-sitemap-product-candidates",
+    targetCount: COSRX_TARGET_COUNT,
+    count: 0,
+    collectedAt,
+    products: [],
+    reason: "COSRX MakeShop detail/category pages returned anti-abuse block content to the collector IP; approved source/feed is needed before runtime normalization.",
+  });
+
+  return {
+    sourceId: "cosrx-korea",
+    status: "skipped",
+    count: 0,
+    targetCount: COSRX_TARGET_COUNT,
+    rawOutput: COSRX_RAW_OUTPUT,
+    normalizedOutput: COSRX_NORMALIZED_OUTPUT,
+    reason: `Saved ${productUrls.length} sitemap product candidates, but normalized collection was not possible because detail/category pages returned anti-abuse block content.`,
+  };
+}
+
 function summarizeSource(source: MerchantCollectionSource, audit: RobotsAuditResult | undefined): Record<string, unknown> {
   const allowedPaths = audit?.decisions.filter((decision) => decision.allowed).map((decision) => decision.path) ?? [];
   const blockedPaths = audit?.decisions.filter((decision) => !decision.allowed).map((decision) => ({
@@ -842,6 +1122,33 @@ async function runOnce(): Promise<void> {
   }
   if (shouldCollect("lotte-himart")) {
     collectionResults.push(await collectHimart(auditsById.get("lotte-himart"), collectedAt));
+  }
+  if (shouldCollect("cosrx-korea")) {
+    collectionResults.push(await collectCosrxCandidates(auditsById.get("cosrx-korea"), collectedAt));
+  }
+  if (shouldCollect("sulwhasoo-us")) {
+    collectionResults.push(await collectShopifyMerchant({
+      merchantId: "sulwhasoo-us",
+      merchantName: "Sulwhasoo US",
+      baseUrl: SULWHASOO_BASE_URL,
+      rawOutput: SULWHASOO_RAW_OUTPUT,
+      normalizedOutput: SULWHASOO_NORMALIZED_OUTPUT,
+      targetCount: SULWHASOO_TARGET_COUNT,
+      originalCurrency: "USD",
+      krwRate: SHOPIFY_USD_KRW_RATE,
+    }, auditsById.get("sulwhasoo-us"), collectedAt));
+  }
+  if (shouldCollect("innisfree-jp")) {
+    collectionResults.push(await collectShopifyMerchant({
+      merchantId: "innisfree-jp",
+      merchantName: "Innisfree JP",
+      baseUrl: INNISFREE_BASE_URL,
+      rawOutput: INNISFREE_RAW_OUTPUT,
+      normalizedOutput: INNISFREE_NORMALIZED_OUTPUT,
+      targetCount: INNISFREE_TARGET_COUNT,
+      originalCurrency: "JPY",
+      krwRate: SHOPIFY_JPY_KRW_RATE,
+    }, auditsById.get("innisfree-jp"), collectedAt));
   }
 
   const status = {

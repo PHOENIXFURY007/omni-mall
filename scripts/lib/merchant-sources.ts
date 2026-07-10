@@ -61,6 +61,42 @@ export const MERCHANT_COLLECTION_SOURCES: MerchantCollectionSource[] = [
     ],
   },
   {
+    id: "cosrx-korea",
+    displayName: "COSRX Korea",
+    baseUrl: "https://cosrx.co.kr",
+    samplePaths: ["/", "/sitemap.xml", "/shop/shopdetail.html?branduid=1176367"],
+    collectionStatus: "needs_source_confirmation",
+    collectionNotes: [
+      "robots.txt allows / and disallows /makeshop/.",
+      "sitemap.xml exposes product-like shop/shopdetail.html URLs.",
+      "Product/category detail requests returned a MakeShop anti-abuse page for the collector IP during implementation, so only URL candidates are saved until approved access or a stable feed is available.",
+    ],
+  },
+  {
+    id: "sulwhasoo-us",
+    displayName: "Sulwhasoo US",
+    baseUrl: "https://us.sulwhasoo.com",
+    samplePaths: ["/products.json?limit=1", "/.well-known/ucp", "/products/summer-ritual-bundle"],
+    collectionStatus: "implemented",
+    collectionNotes: [
+      "Shopify storefront allows public product catalog access.",
+      "UCP/MCP discovery is available for future agentic commerce integration.",
+      "Uses /products.json for product-level public catalog collection.",
+    ],
+  },
+  {
+    id: "innisfree-jp",
+    displayName: "Innisfree JP",
+    baseUrl: "https://www.innisfree.jp",
+    samplePaths: ["/products.json?limit=1", "/.well-known/ucp", "/products/gtmilk-duo-set-asse"],
+    collectionStatus: "implemented",
+    collectionNotes: [
+      "Shopify storefront allows public product catalog access.",
+      "UCP/MCP discovery is available for future agentic commerce integration.",
+      "Uses /products.json for product-level public catalog collection.",
+    ],
+  },
+  {
     id: "yogiyo",
     displayName: "Yogiyo",
     baseUrl: "https://www.yogiyo.co.kr",

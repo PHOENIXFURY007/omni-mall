@@ -10,12 +10,15 @@ export function registerWidgetResources(server: McpServer, appOrigin: string): v
     "https://cdn-image.oliveyoung.com",
     "https://static1.e-himart.co.kr",
     "https://static2.e-himart.co.kr",
+    "https://cdn.shopify.com",
   ];
   const redirectDomains = [
     "https://example.com",
     "https://www.amoremall.com",
     "https://global.oliveyoung.com",
     "https://www.e-himart.co.kr",
+    "https://us.sulwhasoo.com",
+    "https://www.innisfree.jp",
   ];
 
   registerAppResource(
