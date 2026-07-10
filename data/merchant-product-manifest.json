@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-07-10T06:42:00.000Z",
+  "targetProductsPerMerchant": 500,
+  "merchants": [
+    {
+      "merchantId": "amore-pacific",
+      "status": "collected",
+      "count": 500,
+      "targetCount": 500,
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\amore-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\amore-products.normalized.json"
+    },
+    {
+      "merchantId": "olive-young",
+      "status": "collected",
+      "count": 500,
+      "targetCount": 500,
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\olive-young-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\olive-young-products.normalized.json"
+    },
+    {
+      "merchantId": "lotte-himart",
+      "status": "collected",
+      "count": 500,
+      "targetCount": 500,
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\lotte-himart-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\lotte-himart-products.normalized.json"
+    }
+  ]
+}

@@ -1,0 +1,504 @@
+{
+  "generatedAt": "2026-07-09T05:39:10.213Z",
+  "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+  "intervalHint": "Run `npm run collect:merchants -- --watch --interval-minutes=1440` for periodic daily refresh.",
+  "sources": [
+    {
+      "id": "olive-young",
+      "displayName": "Olive Young Global",
+      "baseUrl": "https://global.oliveyoung.com",
+      "collectionStatus": "implemented",
+      "collectionNotes": [
+        "Uses C:/Users/SDS/workspace/olive-poc/data/catalog100-3.31/master_products.json as the PoC source."
+      ],
+      "robots": {
+        "ok": true,
+        "robotsUrl": "https://global.oliveyoung.com/robots.txt",
+        "status": 200,
+        "isRobotsText": true,
+        "sitemaps": [
+          "https://global.oliveyoung.com/sitemap.xml"
+        ],
+        "decisions": [
+          {
+            "path": "/product/detail?prdtNo=GA210003128",
+            "allowed": true,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "allow",
+              "pattern": "/product",
+              "line": 58
+            },
+            "crawlDelay": 5
+          },
+          {
+            "path": "/display",
+            "allowed": true,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "allow",
+              "pattern": "/display",
+              "line": 57
+            },
+            "crawlDelay": 5
+          },
+          {
+            "path": "/product",
+            "allowed": true,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "allow",
+              "pattern": "/product",
+              "line": 58
+            },
+            "crawlDelay": 5
+          }
+        ],
+        "allowedPaths": [
+          "/product/detail?prdtNo=GA210003128",
+          "/display",
+          "/product"
+        ],
+        "blockedPaths": []
+      }
+    },
+    {
+      "id": "lotte-home-shopping",
+      "displayName": "Lotte Home Shopping",
+      "baseUrl": "https://www.lotteimall.com",
+      "collectionStatus": "blocked_for_generic_collector",
+      "collectionNotes": [
+        "robots.txt blocks User-agent * at root; do not crawl without partner permission or an allowed feed/API."
+      ],
+      "robots": {
+        "ok": true,
+        "robotsUrl": "https://www.lotteimall.com/robots.txt",
+        "status": 200,
+        "isRobotsText": true,
+        "sitemaps": [
+          "https://www.lotteimall.com/recommendation-sitemap.xml"
+        ],
+        "decisions": [
+          {
+            "path": "/",
+            "allowed": false,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 2
+            }
+          },
+          {
+            "path": "/recommendation/",
+            "allowed": false,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 2
+            }
+          }
+        ],
+        "allowedPaths": [],
+        "blockedPaths": [
+          {
+            "path": "/",
+            "rule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 2
+            }
+          },
+          {
+            "path": "/recommendation/",
+            "rule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 2
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "lotte-wellfood",
+      "displayName": "Lotte Wellfood",
+      "baseUrl": "https://www.lottewellfood.com",
+      "collectionStatus": "needs_valid_robots",
+      "collectionNotes": [
+        "robots.txt was not available during audit; collect only after a valid product source and policy are confirmed."
+      ],
+      "robots": {
+        "ok": false,
+        "robotsUrl": "https://www.lottewellfood.com/robots.txt",
+        "status": 404,
+        "isRobotsText": false,
+        "sitemaps": [],
+        "decisions": [],
+        "allowedPaths": [],
+        "blockedPaths": []
+      }
+    },
+    {
+      "id": "lotte-on",
+      "displayName": "LotteON",
+      "baseUrl": "https://www.lotteon.com",
+      "collectionStatus": "blocked_for_generic_collector",
+      "collectionNotes": [
+        "robots.txt allows product paths for specific named bots, but User-agent * is disallowed."
+      ],
+      "robots": {
+        "ok": true,
+        "robotsUrl": "https://www.lotteon.com/robots.txt",
+        "status": 200,
+        "isRobotsText": true,
+        "sitemaps": [
+          "https://www.lotteon.com/sitemap.xml"
+        ],
+        "decisions": [
+          {
+            "path": "/p/product/",
+            "allowed": false,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 222
+            }
+          },
+          {
+            "path": "/m/product/",
+            "allowed": false,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 222
+            }
+          },
+          {
+            "path": "/csearch/",
+            "allowed": false,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 222
+            }
+          }
+        ],
+        "allowedPaths": [],
+        "blockedPaths": [
+          {
+            "path": "/p/product/",
+            "rule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 222
+            }
+          },
+          {
+            "path": "/m/product/",
+            "rule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 222
+            }
+          },
+          {
+            "path": "/csearch/",
+            "rule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 222
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "lotte-himart",
+      "displayName": "Lotte Hi-Mart",
+      "baseUrl": "https://www.e-himart.co.kr",
+      "collectionStatus": "robots_allowed_needs_parser",
+      "collectionNotes": [
+        "robots.txt allows User-agent *; a source-specific product parser still needs to be implemented."
+      ],
+      "robots": {
+        "ok": true,
+        "robotsUrl": "https://www.e-himart.co.kr/robots.txt",
+        "status": 200,
+        "isRobotsText": true,
+        "sitemaps": [
+          "https://www.e-himart.co.kr/sitemap.xml"
+        ],
+        "decisions": [
+          {
+            "path": "/",
+            "allowed": true,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "allow",
+              "pattern": "/",
+              "line": 2
+            }
+          },
+          {
+            "path": "/llms.txt",
+            "allowed": true,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "allow",
+              "pattern": "/llms.txt",
+              "line": 3
+            }
+          }
+        ],
+        "allowedPaths": [
+          "/",
+          "/llms.txt"
+        ],
+        "blockedPaths": []
+      }
+    },
+    {
+      "id": "yogiyo",
+      "displayName": "Yogiyo",
+      "baseUrl": "https://www.yogiyo.co.kr",
+      "collectionStatus": "needs_source_confirmation",
+      "collectionNotes": [
+        "robots.txt disallows /api/ and payment/admin paths; collection needs a public, non-location-sensitive product/menu source or partner access."
+      ],
+      "robots": {
+        "ok": true,
+        "robotsUrl": "https://www.yogiyo.co.kr/robots.txt",
+        "status": 200,
+        "isRobotsText": true,
+        "sitemaps": [],
+        "decisions": [
+          {
+            "path": "/",
+            "allowed": true,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ]
+          },
+          {
+            "path": "/api/",
+            "allowed": false,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "disallow",
+              "pattern": "/api/",
+              "line": 6
+            }
+          }
+        ],
+        "allowedPaths": [
+          "/"
+        ],
+        "blockedPaths": [
+          {
+            "path": "/api/",
+            "rule": {
+              "type": "disallow",
+              "pattern": "/api/",
+              "line": 6
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "lotte-chilsung",
+      "displayName": "Lotte Chilsung Mall",
+      "baseUrl": "https://www.lottechilsungmall.com",
+      "collectionStatus": "needs_valid_robots",
+      "collectionNotes": [
+        "Candidate mall domain did not resolve during audit; confirm official product URL before collection."
+      ],
+      "robots": {
+        "ok": false,
+        "robotsUrl": "https://www.lottechilsungmall.com/robots.txt",
+        "error": "fetch failed",
+        "isRobotsText": false,
+        "sitemaps": [],
+        "decisions": [],
+        "allowedPaths": [],
+        "blockedPaths": []
+      }
+    },
+    {
+      "id": "musinsa",
+      "displayName": "Musinsa",
+      "baseUrl": "https://www.musinsa.com",
+      "collectionStatus": "blocked_for_generic_collector",
+      "collectionNotes": [
+        "robots.txt blocks User-agent * and grants access only to named bots/groups; do not use the generic collector."
+      ],
+      "robots": {
+        "ok": true,
+        "robotsUrl": "https://www.musinsa.com/robots.txt",
+        "status": 200,
+        "isRobotsText": true,
+        "sitemaps": [
+          "https://www.musinsa.com/sitemap-musinsa-index.xml"
+        ],
+        "decisions": [
+          {
+            "path": "/products/",
+            "allowed": false,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 62
+            }
+          },
+          {
+            "path": "/auth/",
+            "allowed": false,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 62
+            }
+          }
+        ],
+        "allowedPaths": [],
+        "blockedPaths": [
+          {
+            "path": "/products/",
+            "rule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 62
+            }
+          },
+          {
+            "path": "/auth/",
+            "rule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 62
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "cj-onstyle",
+      "displayName": "CJ OnStyle",
+      "baseUrl": "https://www.cjonstyle.com",
+      "collectionStatus": "needs_valid_robots",
+      "collectionNotes": [
+        "robots.txt request returned HTML during audit, so policy is ambiguous until a valid robots endpoint/source is confirmed."
+      ],
+      "robots": {
+        "ok": false,
+        "robotsUrl": "https://www.cjonstyle.com/robots.txt",
+        "status": 200,
+        "isRobotsText": false,
+        "sitemaps": [],
+        "decisions": [],
+        "allowedPaths": [],
+        "blockedPaths": []
+      }
+    },
+    {
+      "id": "lfmall",
+      "displayName": "LFmall",
+      "baseUrl": "https://www.lfmall.co.kr",
+      "collectionStatus": "blocked_for_generic_collector",
+      "collectionNotes": [
+        "robots.txt blocks User-agent *; only named bots are allowed."
+      ],
+      "robots": {
+        "ok": true,
+        "robotsUrl": "https://www.lfmall.co.kr/robots.txt",
+        "status": 200,
+        "isRobotsText": true,
+        "sitemaps": [
+          "https://www.lfmall.co.kr/sitemap.xml"
+        ],
+        "decisions": [
+          {
+            "path": "/",
+            "allowed": false,
+            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
+            "matchedAgents": [
+              "*"
+            ],
+            "matchedRule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 2
+            }
+          }
+        ],
+        "allowedPaths": [],
+        "blockedPaths": [
+          {
+            "path": "/",
+            "rule": {
+              "type": "disallow",
+              "pattern": "/",
+              "line": 2
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "collectionResults": [
+    {
+      "sourceId": "olive-young",
+      "status": "collected",
+      "count": 100,
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\olive-young-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\olive-young-products.normalized.json"
+    }
+  ]
+}
