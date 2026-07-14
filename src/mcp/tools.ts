@@ -70,6 +70,7 @@ function registerSearchProducts(server: McpServer): void {
       _meta: {
         ui: { resourceUri: OMNI_MALL_WIDGET_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": OMNI_MALL_WIDGET_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Searching OmniMall products...",
         "openai/toolInvocation/invoked": "OmniMall products ready",
       },
@@ -106,6 +107,7 @@ function registerSimilarProducts(server: McpServer): void {
       _meta: {
         ui: { resourceUri: OMNI_MALL_WIDGET_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": OMNI_MALL_WIDGET_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Exploring the product graph...",
         "openai/toolInvocation/invoked": "Similar products ready",
       },
@@ -136,6 +138,7 @@ function registerCompareProducts(server: McpServer): void {
       _meta: {
         ui: { resourceUri: OMNI_MALL_WIDGET_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": OMNI_MALL_WIDGET_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Comparing products...",
         "openai/toolInvocation/invoked": "Product comparison ready",
       },
@@ -164,6 +167,7 @@ function registerCheckout(server: McpServer): void {
       _meta: {
         ui: { resourceUri: OMNI_MALL_WIDGET_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": OMNI_MALL_WIDGET_URI,
+        "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Preparing checkout handoff...",
         "openai/toolInvocation/invoked": "Checkout handoff ready",
       },

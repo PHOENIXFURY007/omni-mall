@@ -184,6 +184,11 @@ export function buildGraph(seedProductIds: string[], limit = 12): ProductGraphEd
     .slice(0, limit);
 }
 
+function productsForGraph(edges: ProductGraphEdge[]): Product[] {
+  const graphProductIds = new Set(edges.flatMap((edge) => [edge.sourceProductId, edge.targetProductId]));
+  return PRODUCT_CATALOG.filter((product) => graphProductIds.has(product.productId));
+}
+
 export function searchProducts(input: SearchProductsInput): SearchProductsResult {
   const startedAt = nowMs();
   const effectiveInput = {
@@ -222,13 +227,15 @@ export function searchProducts(input: SearchProductsInput): SearchProductsResult
   }
 
   const items = ranked.slice(0, limit);
+  const graph = buildGraph(items.map((product) => product.productId), 10);
   const durationMs = nowMs() - startedAt;
 
   return {
     type: "product_search",
     query: input.query,
     items,
-    graph: buildGraph(items.map((product) => product.productId), 10),
+    graph,
+    graphProducts: productsForGraph(graph),
     zeroResult,
     metrics: {
       durationMs,
@@ -250,6 +257,7 @@ export function exploreSimilarProducts(productId: string, limitInput?: number): 
       seed: null,
       items: [],
       graph: [],
+      graphProducts: [],
       metrics: {
         durationMs: nowMs() - startedAt,
         resultCount: 0,
@@ -277,6 +285,7 @@ export function exploreSimilarProducts(productId: string, limitInput?: number): 
     seed,
     items: ranked.slice(0, limit),
     graph: graph.slice(0, 10),
+    graphProducts: productsForGraph(graph),
     metrics: {
       durationMs: nowMs() - startedAt,
       resultCount: ranked.length,

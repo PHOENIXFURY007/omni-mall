@@ -25,7 +25,7 @@ assert.equal(checkout.ok, true);
 assert.ok(checkout.checkoutUrl, "confirmed checkout should return a URL");
 
 const adapters = previewMerchantAdapters();
-assert.equal(adapters.coverage.merchantCount, 8);
+assert.equal(adapters.coverage.merchantCount, 10);
 
 const validation = validateMerchantMappings();
 assert.ok(validation.results.every((result) => result.ok), "sample merchant mappings should validate");

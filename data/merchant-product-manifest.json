@@ -1,58 +1,79 @@
 {
-  "generatedAt": "2026-07-10T08:55:42.599Z",
+  "generatedAt": "2026-07-12T20:01:27.812Z",
   "targetProductsPerMerchant": 500,
   "merchants": [
     {
       "merchantId": "amore-pacific",
-      "status": "collected",
+      "status": "available",
       "count": 500,
+      "rawCount": 500,
       "targetCount": 500,
       "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\amore-products.raw.json",
       "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\amore-products.normalized.json"
     },
     {
       "merchantId": "olive-young",
-      "status": "collected",
+      "status": "available",
       "count": 500,
+      "rawCount": 500,
       "targetCount": 500,
       "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\olive-young-products.raw.json",
       "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\olive-young-products.normalized.json"
     },
     {
       "merchantId": "lotte-himart",
-      "status": "collected",
+      "status": "available",
       "count": 500,
+      "rawCount": 500,
       "targetCount": 500,
       "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\lotte-himart-products.raw.json",
       "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\lotte-himart-products.normalized.json"
     },
     {
-      "merchantId": "sulwhasoo-us",
-      "status": "collected",
-      "count": 115,
+      "merchantId": "kurly",
+      "status": "available",
+      "count": 500,
+      "rawCount": 500,
       "targetCount": 500,
-      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\sulwhasoo-us-products.raw.json",
-      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\sulwhasoo-us-products.normalized.json",
-      "reason": "Public Shopify catalog returned 115 product-level records."
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\kurly-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\kurly-products.normalized.json"
     },
     {
-      "merchantId": "innisfree-jp",
-      "status": "collected",
-      "count": 127,
+      "merchantId": "stylekorean",
+      "status": "available",
+      "count": 500,
+      "rawCount": 500,
       "targetCount": 500,
-      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\innisfree-jp-products.raw.json",
-      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\innisfree-jp-products.normalized.json",
-      "reason": "Public Shopify catalog returned 127 product-level records."
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\stylekorean-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\stylekorean-products.normalized.json"
     },
     {
       "merchantId": "cosrx-korea",
       "status": "candidate_only",
       "count": 0,
-      "candidateCount": 216,
+      "rawCount": 216,
       "targetCount": 500,
       "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\cosrx-korea-products.raw.json",
       "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\cosrx-korea-products.normalized.json",
-      "reason": "Sitemap candidates saved, but MakeShop detail/category pages returned anti-abuse block content to the collector IP."
+      "reason": "Raw candidates exist, but normalized runtime products are not available."
+    },
+    {
+      "merchantId": "sulwhasoo-us",
+      "status": "available",
+      "count": 115,
+      "rawCount": 115,
+      "targetCount": 500,
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\sulwhasoo-us-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\sulwhasoo-us-products.normalized.json"
+    },
+    {
+      "merchantId": "innisfree-jp",
+      "status": "available",
+      "count": 127,
+      "rawCount": 127,
+      "targetCount": 500,
+      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\innisfree-jp-products.raw.json",
+      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\innisfree-jp-products.normalized.json"
     }
   ]
 }

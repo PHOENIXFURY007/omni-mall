@@ -1,4 +1,4 @@
-export const OMNI_MALL_WIDGET_URI = "ui://widget/omni-mall-products-v3.html";
+export const OMNI_MALL_WIDGET_URI = "ui://widget/omni-mall-products-v4.html";
 
 export const omniMallWidgetHtml = String.raw`<!doctype html>
 <html lang="en">
@@ -155,6 +155,68 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
       line-height: 1.45;
     }
 
+    .graphBoard {
+      display: grid;
+      grid-template-columns: minmax(150px, 0.75fr) minmax(0, 1.55fr);
+      gap: 10px;
+      border: 1px solid #dfe4eb;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .graphSeed,
+    .graphNeighbor {
+      min-width: 0;
+      border: 1px solid #e5e9ef;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 9px;
+    }
+
+    .graphSeed {
+      align-self: stretch;
+      display: grid;
+      gap: 8px;
+      align-content: start;
+    }
+
+    .graphNeighbors {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .graphNeighbor {
+      display: grid;
+      grid-template-columns: 56px minmax(0, 1fr);
+      gap: 9px;
+      align-items: center;
+    }
+
+    .graphThumb {
+      width: 56px;
+      height: 56px;
+      border-radius: 7px;
+      object-fit: cover;
+      background: #eef1f5;
+      border: 1px solid #e5e9ef;
+    }
+
+    .graphEdge {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+      font-size: 12px;
+      color: #536173;
+    }
+
+    .edgeWeight {
+      color: #14532d;
+      font-weight: 720;
+    }
+
     .actions {
       display: flex;
       flex-wrap: wrap;
@@ -178,6 +240,11 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
       background: #14532d;
       border-color: #14532d;
       color: #ffffff;
+    }
+
+    button:disabled {
+      cursor: wait;
+      opacity: 0.68;
     }
 
     .section {
@@ -226,6 +293,12 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
       font-size: 13px;
       text-align: center;
     }
+
+    @media (max-width: 560px) {
+      .graphBoard {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 <body>
@@ -271,6 +344,22 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
         if (Array.isArray(data.products)) return data.products;
         if (data.product) return [data.product];
         return [];
+      }
+
+      function productIndex(data) {
+        var index = {};
+        var collections = [
+          productList(data),
+          Array.isArray(data && data.graphProducts) ? data.graphProducts : [],
+          data && data.seed ? [data.seed] : [],
+          data && data.product ? [data.product] : [],
+        ];
+        collections.forEach(function (products) {
+          products.forEach(function (product) {
+            if (product && product.productId) index[product.productId] = product;
+          });
+        });
+        return index;
       }
 
       function isRecord(value) {
@@ -409,13 +498,40 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
 
       function renderGraph(data) {
         if (!data || !Array.isArray(data.graph) || !data.graph.length) return "";
-        return '<section class="section"><h2>Graph signals</h2><div class="grid">' + data.graph.slice(0, 6).map(function (edge) {
-          return '<div class="card">' +
-            '<div class="merchant">' + escapeHtml(edge.relation) + ' / weight ' + escapeHtml(edge.weight) + '</div>' +
-            '<div class="productTitle">' + escapeHtml(edge.sourceProductId) + ' to ' + escapeHtml(edge.targetProductId) + '</div>' +
-            '<div class="subtitle">' + escapeHtml(edge.reason) + '</div>' +
+        var productsById = productIndex(data);
+        var seed = data.seed || productList(data)[0] || productsById[data.graph[0].sourceProductId];
+        var seedId = seed && seed.productId ? seed.productId : data.graph[0].sourceProductId;
+        var relatedEdges = data.graph.filter(function (edge) {
+          return edge.sourceProductId === seedId || edge.targetProductId === seedId;
+        });
+        if (!relatedEdges.length) relatedEdges = data.graph.slice(0, 6);
+
+        function miniNode(product, fallbackId, className) {
+          var title = product && product.title ? product.title : fallbackId;
+          var merchant = product && (product.merchantName || product.merchantId) ? (product.merchantName || product.merchantId) : "Graph node";
+          var image = product && product.imageUrl
+            ? '<img class="graphThumb" src="' + escapeHtml(product.imageUrl) + '" alt="' + escapeHtml(title) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />'
+            : '<div class="graphThumb" aria-hidden="true"></div>';
+          return '<div class="' + className + '">' +
+            image +
+            '<div class="cardHead">' +
+              '<div class="merchant">' + escapeHtml(merchant) + '</div>' +
+              '<div class="productTitle">' + escapeHtml(title) + '</div>' +
+            '</div>' +
           '</div>';
-        }).join("") + '</div></section>';
+        }
+
+        var seedNode = miniNode(seed, seedId, "graphSeed");
+        var neighbors = relatedEdges.slice(0, 6).map(function (edge) {
+          var neighborId = edge.sourceProductId === seedId ? edge.targetProductId : edge.sourceProductId;
+          var product = productsById[neighborId];
+          return '<div>' +
+            miniNode(product, neighborId, "graphNeighbor") +
+            '<div class="graphEdge"><span>' + escapeHtml(edge.relation || "similar") + '</span><span class="edgeWeight">weight ' + escapeHtml(edge.weight) + '</span><span>' + escapeHtml(edge.reason || "") + '</span></div>' +
+          '</div>';
+        }).join("");
+
+        return '<section class="section"><h2>Nearest-neighbor graph</h2><div class="graphBoard">' + seedNode + '<div class="graphNeighbors">' + neighbors + '</div></div></section>';
       }
 
       function renderAdapters(data) {
@@ -466,6 +582,47 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
         notifyHeight();
       }
 
+      function showInlineNotice(message) {
+        var current = root.innerHTML;
+        root.innerHTML = '<div class="notice">' + escapeHtml(message) + '</div>' + current;
+        notifyHeight();
+      }
+
+      function setButtonBusy(button, busy, label) {
+        if (!button) return;
+        if (busy) {
+          button.setAttribute("data-label", button.textContent || "");
+          button.textContent = label || "Loading";
+          button.disabled = true;
+          return;
+        }
+        button.disabled = false;
+        if (button.getAttribute("data-label")) {
+          button.textContent = button.getAttribute("data-label");
+          button.removeAttribute("data-label");
+        }
+      }
+
+      async function callToolAndRender(toolName, args, button, label) {
+        if (!window.openai || !window.openai.callTool) {
+          showInlineNotice("ChatGPT widget bridge is not ready. Run the tool from chat once, then try this button again.");
+          return;
+        }
+
+        setButtonBusy(button, true, label);
+        try {
+          var result = await window.openai.callTool(toolName, args);
+          if (!hydrate(result)) {
+            scheduleBootstrapHydration(0);
+          }
+        } catch (error) {
+          console.warn(toolName + " failed", error);
+          showInlineNotice("Tool call failed: " + (error && error.message ? error.message : String(error || "unknown error")));
+        } finally {
+          setButtonBusy(button, false);
+        }
+      }
+
       async function openExternal(url) {
         if (!url) return;
         try {
@@ -482,15 +639,16 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
       root.addEventListener("click", async function (event) {
         var target = event.target && event.target.closest ? event.target.closest("button[data-action]") : null;
         if (!target) return;
+        event.preventDefault();
         var action = target.getAttribute("data-action");
         if (action === "open") {
           await openExternal(target.getAttribute("data-url"));
         }
-        if (action === "similar" && window.openai && window.openai.callTool) {
-          await window.openai.callTool("explore_similar_products", { productId: target.getAttribute("data-id"), limit: 6 });
+        if (action === "similar") {
+          await callToolAndRender("explore_similar_products", { productId: target.getAttribute("data-id"), limit: 6 }, target, "Graph");
         }
-        if (action === "checkout" && window.openai && window.openai.callTool) {
-          await window.openai.callTool("create_checkout_link", { productId: target.getAttribute("data-id"), confirmed: true });
+        if (action === "checkout") {
+          await callToolAndRender("create_checkout_link", { productId: target.getAttribute("data-id"), confirmed: true }, target, "Checkout");
         }
       });
 

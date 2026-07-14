@@ -1,6 +1,6 @@
 # OmniMall Progress Update
 
-Generated: 2026-07-10
+Generated: 2026-07-13
 
 This document is a handoff note for future Codex work on the OmniMall PoC. It summarizes the architecture, implementation, data collection, verification, and remaining V2 tasks completed so far.
 
@@ -38,7 +38,10 @@ Main runtime features:
 - MCP HTTP server in `src/server.ts`.
 - Product search, zero-result fallback, graph recommendations, comparison, checkout link creation, adapter preview, and adapter validation.
 - ChatGPT Apps widget resources and CSP handling.
-- Merchant profiles for Shinsegae, Lotte, Lotte Hi-Mart, Olive Young, Daiso, and Amore Pacific.
+- Widget product cards render images for every runtime product. Collected products use source image URLs; sample-only products use neutral placeholders.
+- Widget graph rendering now shows a nearest-neighbor board with seed/neighbor product images, edge relation, edge weight, and edge reason instead of raw product-id-only graph cards.
+- Widget `Similar` and `Checkout` buttons call MCP tools from inside the component and hydrate the returned structured result back into the widget. Tool descriptors set `openai/widgetAccessible: true`, and the widget URI is bumped to `ui://widget/omni-mall-products-v4.html` to avoid stale ChatGPT resource caching.
+- Merchant profiles for Shinsegae, Lotte, Lotte Hi-Mart, Kurly, StyleKorean, Olive Young, Daiso, and Amore Pacific.
 - Added runtime merchant profiles for Sulwhasoo US and Innisfree JP after public Shopify catalog collection.
 - Sample products remain for merchants without real datasets, but real collected datasets replace sample overlap for collected merchants.
 
@@ -64,6 +67,8 @@ Collected datasets:
 | Amore Mall | `data/amore-products.raw.json` | `data/amore-products.normalized.json` | 500 | Public product detail pages |
 | Olive Young | `data/olive-young-products.raw.json` | `data/olive-young-products.normalized.json` | 500 | Public sitemap + product detail-data endpoint |
 | Lotte Hi-Mart | `data/lotte-himart-products.raw.json` | `data/lotte-himart-products.normalized.json` | 500 | Public sitemap + Schema.org Product JSON-LD |
+| Kurly | `data/kurly-products.raw.json` | `data/kurly-products.normalized.json` | 500 | Public goods sitemap + Schema.org Product JSON-LD |
+| StyleKorean | `data/stylekorean-products.raw.json` | `data/stylekorean-products.normalized.json` | 500 | Public product sitemap + Schema.org Product JSON-LD |
 | Sulwhasoo US | `data/sulwhasoo-us-products.raw.json` | `data/sulwhasoo-us-products.normalized.json` | 115 | Public Shopify products JSON |
 | Innisfree JP | `data/innisfree-jp-products.raw.json` | `data/innisfree-jp-products.normalized.json` | 127 | Public Shopify products JSON |
 
@@ -84,6 +89,9 @@ Robots-aware collection notes:
 - Olive Young collection respects robots policy and the observed `5s` crawl delay.
 - Olive Young public collection initially hit a transient DNS `EAI_AGAIN`; retry/backoff was added to prevent a single network wobble from killing the full run.
 - Hi-Mart had no crawl-delay requirement observed, but uses a small throttle.
+- Kurly and StyleKorean are collected from public sitemap-discovered product pages and Schema.org Product JSON-LD.
+- The collector user-agent was changed to avoid matching StyleKorean's blocked `oBot` robots group by substring.
+- HTML/XML fetching now decodes response charsets such as `euc-kr` to preserve Korean product text.
 - Blocked or ambiguous merchants were not faked.
 
 ## Additional Source Checks
@@ -103,6 +111,18 @@ The following sources were checked and recorded in `docs/data-collection-todo-v2
   - Shopify storefront, public product catalog allowed.
   - UCP/MCP discovery available.
   - Public Shopify JSON collector implemented; 127 normalized products saved.
+- Kurly: `https://www.kurly.com/robots.txt`
+  - Public product/goods paths and sitemap index were usable for the generic collector.
+  - Goods sitemaps exposed product URLs with Schema.org Product JSON-LD.
+  - Runtime collector implemented; 500 normalized products saved.
+- StyleKorean: `https://www.stylekorean.com/robots.txt`
+  - Generic `User-agent: *` allows public paths except admin/plugin paths.
+  - Product sitemap exposes product URLs with Schema.org Product JSON-LD.
+  - Runtime collector implemented; 500 normalized products saved.
+- Major Korean marketplace audit:
+  - Coupang, Gmarket, Auction, and Ably returned HTTP 403 to generic robots/source probes.
+  - Musinsa, Naver Shopping, 11st, SSG.COM, GS Shop, Hyundai Hmall, W Concept, LotteON, Lotte Home Shopping, and LFmall are blocked for generic collection by robots policy.
+  - Zigzag, 29CM, Danawa, and KREAM need a confirmed product-level public feed/API before collection.
 
 ## V2 Backlog
 
@@ -110,6 +130,20 @@ See `docs/data-collection-todo-v2.md` for detailed reasons and next actions.
 
 Current blocked or incomplete merchants:
 
+- Coupang: generic robots/source probes returned HTTP 403.
+- Naver Shopping: generic crawling blocked by robots.
+- Gmarket: generic robots/source probes returned HTTP 403.
+- Auction: generic robots/source probes returned HTTP 403.
+- 11st: generic crawling blocked by robots.
+- SSG.COM: generic crawling blocked by robots.
+- GS Shop: generic crawling blocked by robots.
+- Hyundai Hmall: generic crawling blocked by robots.
+- W Concept: generic crawling blocked by robots.
+- Ably: generic robots/source probes returned HTTP 403.
+- Zigzag: no confirmed product-level public feed/sitemap yet.
+- 29CM: no confirmed product-level public feed/sitemap yet.
+- Danawa: no confirmed product-level public feed/sitemap yet.
+- KREAM: stable valid robots/source still needs confirmation.
 - Lotte Home Shopping: generic crawling blocked by robots.
 - LotteON: generic crawling blocked; only named bots/groups allowed.
 - Musinsa: generic crawling blocked; named bots/groups only.
@@ -164,7 +198,7 @@ npm run collect:merchants
 
 ## Verification Completed
 
-These commands passed after the 500-product Olive Young collection and sample-overlap cleanup:
+These commands passed after the Kurly and StyleKorean collection/runtime wiring update:
 
 - `npm run build`
 - `npm run smoke`
@@ -176,18 +210,24 @@ Runtime catalog counts after cleanup:
 - `amore-pacific`: 500
 - `olive-young`: 500
 - `lotte-himart`: 500
+- `kurly`: 500
+- `stylekorean`: 500
 - `sulwhasoo-us`: 115
 - `innisfree-jp`: 127
 - `shinsegae`: 3 sample products
 - `lotte`: 3 sample products
 - `daiso`: 2 sample products
+- Runtime merchant count: 10
+- Audited collection source count in `data/merchant-collection-status.json`: 29
+- Runtime product image coverage: 2,750 / 2,750 products have image URLs.
+- Graph outputs include `graphProducts` so the widget can resolve graph edge IDs into visual product nodes.
 
 ## Important Implementation Notes
 
 - `src/data/catalog.ts` removes sample products for a merchant when a real collected dataset exists.
-- `src/mcp/resources.ts` includes CSP image/redirect domains for Amore, Olive Young, and Hi-Mart.
+- `src/mcp/resources.ts` includes CSP image/redirect domains for Amore, Olive Young, Hi-Mart, Kurly, StyleKorean, Shopify merchants, and sample placeholder images.
 - `scripts/collect-merchant-products.ts` supports `COLLECT_MERCHANTS` so a single merchant can be refreshed without re-running all collectors.
-- `scripts/collect-merchant-products.ts` includes Shopify catalog collection for Sulwhasoo US and Innisfree JP, and COSRX sitemap-candidate capture.
+- `scripts/collect-merchant-products.ts` includes sitemap + JSON-LD collection for Kurly, StyleKorean, and Lotte Hi-Mart; Shopify catalog collection for Sulwhasoo US and Innisfree JP; and COSRX sitemap-candidate capture.
 - `scripts/lib/robots.ts` provides robots parsing, audit, allow/disallow evaluation, and crawl-delay support.
 - Logs and pid files are intentionally ignored through `.gitignore`.
 

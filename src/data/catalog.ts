@@ -1,6 +1,7 @@
 import type { MerchantId, MerchantProfile, Product } from "../types.js";
 import { loadCollectedAmoreProducts } from "./amore-loader.js";
 import { loadCollectedHimartProducts } from "./himart-loader.js";
+import { loadCollectedKurlyProducts, loadCollectedStyleKoreanProducts } from "./jsonld-marketplace-loader.js";
 import { loadCollectedOliveYoungProducts } from "./olive-loader.js";
 import { loadCollectedInnisfreeProducts, loadCollectedSulwhasooProducts } from "./shopify-loader.js";
 
@@ -37,6 +38,28 @@ export const MERCHANT_PROFILES: Record<MerchantId, MerchantProfile> = {
     capabilities: ["search", "similarity", "availability", "external_checkout"],
     requiredFields: ["productId", "title", "brand", "price", "stockStatus", "productUrl"],
     notes: ["Collected from public sitemap and Schema.org product metadata when robots policy allows."],
+  },
+  "kurly": {
+    merchantId: "kurly",
+    displayName: "Kurly",
+    aliases: ["kurly", "market kurly", "grocery", "fresh food", "food"],
+    sourceType: "marketplace_api",
+    status: "sample_ready",
+    authProfile: "none",
+    capabilities: ["search", "similarity", "availability", "external_checkout"],
+    requiredFields: ["productId", "title", "brand", "price", "stockStatus", "productUrl"],
+    notes: ["Collected from public goods sitemaps and Schema.org product metadata when robots policy allows."],
+  },
+  "stylekorean": {
+    merchantId: "stylekorean",
+    displayName: "StyleKorean",
+    aliases: ["stylekorean", "style korean", "k beauty", "korean beauty", "beauty"],
+    sourceType: "marketplace_api",
+    status: "sample_ready",
+    authProfile: "none",
+    capabilities: ["search", "similarity", "availability", "external_checkout"],
+    requiredFields: ["productId", "title", "brand", "price", "stockStatus", "productUrl"],
+    notes: ["Collected from public product sitemap and Schema.org product metadata when robots policy allows."],
   },
   "olive-young": {
     merchantId: "olive-young",
@@ -119,6 +142,7 @@ export const PRODUCT_CATALOG: Product[] = [
     tags: ["gift", "winter", "premium", "fashion", "scarf"],
     productUrl: "https://example.com/shinsegae/products/ssg-scarf-001",
     checkoutUrl: "https://example.com/shinsegae/checkout/ssg-scarf-001",
+    imageUrl: "https://placehold.co/600x450/e8eef8/243b61/png?text=Shinsegae%20Scarf",
     metadataQuality: 0.94,
     sourceUpdatedAt: "2026-07-01T09:00:00.000Z",
   },
@@ -145,6 +169,7 @@ export const PRODUCT_CATALOG: Product[] = [
     tags: ["kitchen", "cookware", "gift", "home"],
     productUrl: "https://example.com/shinsegae/products/ssg-cookware-002",
     checkoutUrl: "https://example.com/shinsegae/checkout/ssg-cookware-002",
+    imageUrl: "https://placehold.co/600x450/e8eef8/243b61/png?text=Cookware%20Set",
     metadataQuality: 0.9,
     sourceUpdatedAt: "2026-07-02T09:00:00.000Z",
   },
@@ -171,6 +196,7 @@ export const PRODUCT_CATALOG: Product[] = [
     tags: ["coffee", "espresso", "gift", "premium"],
     productUrl: "https://example.com/shinsegae/products/ssg-espresso-003",
     checkoutUrl: "https://example.com/shinsegae/checkout/ssg-espresso-003",
+    imageUrl: "https://placehold.co/600x450/e8eef8/243b61/png?text=Espresso%20Gift",
     metadataQuality: 0.92,
     sourceUpdatedAt: "2026-07-02T09:00:00.000Z",
   },
@@ -197,6 +223,7 @@ export const PRODUCT_CATALOG: Product[] = [
     tags: ["audio", "wireless", "earbuds", "travel"],
     productUrl: "https://example.com/lotte/products/lot-earbuds-001",
     checkoutUrl: "https://example.com/lotte/checkout/lot-earbuds-001",
+    imageUrl: "https://placehold.co/600x450/f4e7e7/5a1f1f/png?text=Wireless%20Earbuds",
     metadataQuality: 0.88,
     sourceUpdatedAt: "2026-07-03T09:00:00.000Z",
   },
@@ -223,6 +250,7 @@ export const PRODUCT_CATALOG: Product[] = [
     tags: ["kids", "toy", "gift", "blocks"],
     productUrl: "https://example.com/lotte/products/lot-blocks-002",
     checkoutUrl: "https://example.com/lotte/checkout/lot-blocks-002",
+    imageUrl: "https://placehold.co/600x450/f4e7e7/5a1f1f/png?text=Building%20Blocks",
     metadataQuality: 0.86,
     sourceUpdatedAt: "2026-07-03T09:00:00.000Z",
   },
@@ -249,8 +277,61 @@ export const PRODUCT_CATALOG: Product[] = [
     tags: ["home", "diffuser", "gift", "fragrance"],
     productUrl: "https://example.com/lotte/products/lot-diffuser-003",
     checkoutUrl: "https://example.com/lotte/checkout/lot-diffuser-003",
+    imageUrl: "https://placehold.co/600x450/f4e7e7/5a1f1f/png?text=Reed%20Diffuser",
     metadataQuality: 0.83,
     sourceUpdatedAt: "2026-07-03T09:00:00.000Z",
+  },
+  {
+    merchantId: "kurly",
+    merchantName: "Kurly",
+    productId: "kurly-yogurt-001",
+    sku: "KURLY-FOOD-001",
+    title: "Plain Soy Yogurt 1L",
+    brand: "Kurly Fresh",
+    domain: "food",
+    categoryPath: ["Food", "Dairy Alternative", "Yogurt"],
+    attributes: {
+      source: "sample_catalog",
+      flavor: "plain",
+      format: "chilled",
+      volume: "1L",
+    },
+    price: 6800,
+    currency: "KRW",
+    stockStatus: "in_stock",
+    rating: 4.6,
+    reviewCount: 128,
+    tags: ["food", "grocery", "kurly", "yogurt", "fresh"],
+    productUrl: "https://example.com/kurly/products/kurly-yogurt-001",
+    checkoutUrl: "https://example.com/kurly/checkout/kurly-yogurt-001",
+    metadataQuality: 0.88,
+    sourceUpdatedAt: "2026-07-06T09:00:00.000Z",
+  },
+  {
+    merchantId: "stylekorean",
+    merchantName: "StyleKorean",
+    productId: "stylekorean-toner-001",
+    sku: "STYLEKOREAN-BEAUTY-001",
+    title: "Hydrating Korean Skincare Toner",
+    brand: "K-Beauty Select",
+    domain: "beauty",
+    categoryPath: ["Beauty", "Skincare", "Toner"],
+    attributes: {
+      source: "sample_catalog",
+      skinType: "dry",
+      benefit: "hydration",
+      format: "toner",
+    },
+    price: 16200,
+    currency: "KRW",
+    stockStatus: "in_stock",
+    rating: 4.5,
+    reviewCount: 214,
+    tags: ["beauty", "k beauty", "stylekorean", "toner", "hydration"],
+    productUrl: "https://example.com/stylekorean/products/stylekorean-toner-001",
+    checkoutUrl: "https://example.com/stylekorean/checkout/stylekorean-toner-001",
+    metadataQuality: 0.88,
+    sourceUpdatedAt: "2026-07-06T09:00:00.000Z",
   },
   {
     merchantId: "olive-young",
@@ -327,6 +408,7 @@ export const PRODUCT_CATALOG: Product[] = [
     tags: ["desk", "organizer", "storage", "value", "home"],
     productUrl: "https://example.com/daiso/products/dai-organizer-001",
     checkoutUrl: "https://example.com/daiso/checkout/dai-organizer-001",
+    imageUrl: "https://placehold.co/600x450/e8f3ea/1f4a2d/png?text=Desk%20Organizer",
     metadataQuality: 0.8,
     sourceUpdatedAt: "2026-07-05T09:00:00.000Z",
   },
@@ -353,6 +435,7 @@ export const PRODUCT_CATALOG: Product[] = [
     tags: ["tumbler", "travel", "value", "drinkware"],
     productUrl: "https://example.com/daiso/products/dai-tumbler-002",
     checkoutUrl: "https://example.com/daiso/checkout/dai-tumbler-002",
+    imageUrl: "https://placehold.co/600x450/e8f3ea/1f4a2d/png?text=Travel%20Tumbler",
     metadataQuality: 0.81,
     sourceUpdatedAt: "2026-07-05T09:00:00.000Z",
   },
@@ -426,5 +509,7 @@ function replaceSampleProductsWhenCollected(merchantId: MerchantId, collectedPro
 replaceSampleProductsWhenCollected("amore-pacific", loadCollectedAmoreProducts());
 replaceSampleProductsWhenCollected("olive-young", loadCollectedOliveYoungProducts());
 replaceSampleProductsWhenCollected("lotte-himart", loadCollectedHimartProducts());
+replaceSampleProductsWhenCollected("kurly", loadCollectedKurlyProducts());
+replaceSampleProductsWhenCollected("stylekorean", loadCollectedStyleKoreanProducts());
 replaceSampleProductsWhenCollected("sulwhasoo-us", loadCollectedSulwhasooProducts());
 replaceSampleProductsWhenCollected("innisfree-jp", loadCollectedInnisfreeProducts());

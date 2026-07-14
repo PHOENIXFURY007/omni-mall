@@ -2,6 +2,8 @@ export const MERCHANT_IDS = [
   "shinsegae",
   "lotte",
   "lotte-himart",
+  "kurly",
+  "stylekorean",
   "olive-young",
   "sulwhasoo-us",
   "innisfree-jp",
@@ -101,6 +103,7 @@ export interface SearchProductsResult {
   query: string;
   items: RankedProduct[];
   graph: ProductGraphEdge[];
+  graphProducts: Product[];
   zeroResult: ZeroResultState;
   metrics: {
     durationMs: number;
@@ -115,6 +118,7 @@ export interface SimilarProductsResult {
   seed: Product | null;
   items: RankedProduct[];
   graph: ProductGraphEdge[];
+  graphProducts: Product[];
   metrics: {
     durationMs: number;
     resultCount: number;

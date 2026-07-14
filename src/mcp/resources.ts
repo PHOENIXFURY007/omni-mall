@@ -10,13 +10,21 @@ export function registerWidgetResources(server: McpServer, appOrigin: string): v
     "https://cdn-image.oliveyoung.com",
     "https://static1.e-himart.co.kr",
     "https://static2.e-himart.co.kr",
+    "https://product-image.kurly.com",
+    "https://3p-image.kurly.com",
+    "https://img-cf.kurly.com",
+    "https://res.kurly.com",
+    "https://d2c3d01lcpw2ui.cloudfront.net",
     "https://cdn.shopify.com",
+    "https://placehold.co",
   ];
   const redirectDomains = [
     "https://example.com",
     "https://www.amoremall.com",
     "https://global.oliveyoung.com",
     "https://www.e-himart.co.kr",
+    "https://www.kurly.com",
+    "https://www.stylekorean.com",
     "https://us.sulwhasoo.com",
     "https://www.innisfree.jp",
   ];

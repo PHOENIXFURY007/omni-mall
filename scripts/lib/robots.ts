@@ -1,6 +1,6 @@
 export const DEFAULT_COLLECTOR_USER_AGENT =
   process.env.OMNIMALL_COLLECTOR_USER_AGENT
-  ?? "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)";
+  ?? "OmniMall-PoC-Collector/0.1 (+public catalog collection)";
 
 export interface RobotsSource {
   id: string;

@@ -89,6 +89,30 @@ interface ShopifyMerchantConfig {
   krwRate: number;
 }
 
+interface JsonLdMerchantConfig {
+  merchantId: "kurly" | "stylekorean";
+  merchantName: string;
+  baseUrl: string;
+  rawOutput: string;
+  normalizedOutput: string;
+  targetCount: number;
+  source: string;
+  domain: string;
+  categoryRoot: string;
+  robotsPathPrefix: string;
+  defaultCurrency: "KRW" | "USD";
+  krwRate: number;
+  requestDelayMs: number;
+  fetchProductUrls: (targetCount: number) => Promise<string[]>;
+}
+
+interface JsonLdRawProduct {
+  productId: string;
+  productUrl: string;
+  collectedAt: string;
+  product: Record<string, unknown>;
+}
+
 interface CollectionResult {
   sourceId: string;
   status: "collected" | "skipped" | "failed";
@@ -99,6 +123,13 @@ interface CollectionResult {
   reason?: string;
 }
 
+interface DatasetManifestSource {
+  merchantId: string;
+  rawOutput: string;
+  normalizedOutput: string;
+  targetCount?: number;
+}
+
 type OliveSourceMode = "auto" | "local" | "public";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -107,6 +138,8 @@ const dataDir = join(repoRoot, "data");
 const runDir = join(dataDir, "collection-runs");
 const statusOutput = join(dataDir, "merchant-collection-status.json");
 const manifestOutput = join(dataDir, "merchant-product-manifest.json");
+const AMORE_RAW_OUTPUT = join(dataDir, "amore-products.raw.json");
+const AMORE_NORMALIZED_OUTPUT = join(dataDir, "amore-products.normalized.json");
 const MERCHANT_TARGET_COUNT = Math.max(1, Number(process.env.MERCHANT_TARGET_COUNT ?? 500));
 const REQUESTED_MERCHANTS = new Set(
   String(process.env.COLLECT_MERCHANTS ?? "")
@@ -132,6 +165,18 @@ const HIMART_RAW_OUTPUT = join(dataDir, "lotte-himart-products.raw.json");
 const HIMART_NORMALIZED_OUTPUT = join(dataDir, "lotte-himart-products.normalized.json");
 const HIMART_TARGET_COUNT = Math.max(1, Number(process.env.HIMART_TARGET_COUNT ?? MERCHANT_TARGET_COUNT));
 const HIMART_REQUEST_DELAY_MS = Math.max(0, Number(process.env.HIMART_REQUEST_DELAY_MS ?? 150));
+const KURLY_BASE_URL = "https://www.kurly.com";
+const KURLY_SITEMAP_INDEX_URL = `${KURLY_BASE_URL}/sitemap/index-sitemap.xml`;
+const KURLY_RAW_OUTPUT = join(dataDir, "kurly-products.raw.json");
+const KURLY_NORMALIZED_OUTPUT = join(dataDir, "kurly-products.normalized.json");
+const KURLY_TARGET_COUNT = Math.max(1, Number(process.env.KURLY_TARGET_COUNT ?? MERCHANT_TARGET_COUNT));
+const KURLY_REQUEST_DELAY_MS = Math.max(0, Number(process.env.KURLY_REQUEST_DELAY_MS ?? 100));
+const STYLEKOREAN_BASE_URL = "https://www.stylekorean.com";
+const STYLEKOREAN_PRODUCT_SITEMAP_URL = `${STYLEKOREAN_BASE_URL}/sitemap-products-1.xml`;
+const STYLEKOREAN_RAW_OUTPUT = join(dataDir, "stylekorean-products.raw.json");
+const STYLEKOREAN_NORMALIZED_OUTPUT = join(dataDir, "stylekorean-products.normalized.json");
+const STYLEKOREAN_TARGET_COUNT = Math.max(1, Number(process.env.STYLEKOREAN_TARGET_COUNT ?? MERCHANT_TARGET_COUNT));
+const STYLEKOREAN_REQUEST_DELAY_MS = Math.max(0, Number(process.env.STYLEKOREAN_REQUEST_DELAY_MS ?? 75));
 const COSRX_BASE_URL = "https://cosrx.co.kr";
 const COSRX_SITEMAP_URL = `${COSRX_BASE_URL}/sitemap.xml`;
 const COSRX_RAW_OUTPUT = join(dataDir, "cosrx-korea-products.raw.json");
@@ -150,6 +195,60 @@ const NETWORK_RETRY_BASE_MS = Math.max(250, Number(process.env.COLLECT_NETWORK_R
 const USD_KRW_RATE = Number(process.env.OLIVE_USD_KRW_RATE ?? 1350);
 const SHOPIFY_USD_KRW_RATE = Number(process.env.SHOPIFY_USD_KRW_RATE ?? 1350);
 const SHOPIFY_JPY_KRW_RATE = Number(process.env.SHOPIFY_JPY_KRW_RATE ?? 9.2);
+const MARKETPLACE_USD_KRW_RATE = Number(process.env.MARKETPLACE_USD_KRW_RATE ?? 1350);
+
+function datasetManifestSources(): DatasetManifestSource[] {
+  return [
+    {
+      merchantId: "amore-pacific",
+      rawOutput: AMORE_RAW_OUTPUT,
+      normalizedOutput: AMORE_NORMALIZED_OUTPUT,
+      targetCount: MERCHANT_TARGET_COUNT,
+    },
+    {
+      merchantId: "olive-young",
+      rawOutput: OLIVE_RAW_OUTPUT,
+      normalizedOutput: OLIVE_NORMALIZED_OUTPUT,
+      targetCount: OLIVE_TARGET_COUNT,
+    },
+    {
+      merchantId: "lotte-himart",
+      rawOutput: HIMART_RAW_OUTPUT,
+      normalizedOutput: HIMART_NORMALIZED_OUTPUT,
+      targetCount: HIMART_TARGET_COUNT,
+    },
+    {
+      merchantId: "kurly",
+      rawOutput: KURLY_RAW_OUTPUT,
+      normalizedOutput: KURLY_NORMALIZED_OUTPUT,
+      targetCount: KURLY_TARGET_COUNT,
+    },
+    {
+      merchantId: "stylekorean",
+      rawOutput: STYLEKOREAN_RAW_OUTPUT,
+      normalizedOutput: STYLEKOREAN_NORMALIZED_OUTPUT,
+      targetCount: STYLEKOREAN_TARGET_COUNT,
+    },
+    {
+      merchantId: "cosrx-korea",
+      rawOutput: COSRX_RAW_OUTPUT,
+      normalizedOutput: COSRX_NORMALIZED_OUTPUT,
+      targetCount: COSRX_TARGET_COUNT,
+    },
+    {
+      merchantId: "sulwhasoo-us",
+      rawOutput: SULWHASOO_RAW_OUTPUT,
+      normalizedOutput: SULWHASOO_NORMALIZED_OUTPUT,
+      targetCount: SULWHASOO_TARGET_COUNT,
+    },
+    {
+      merchantId: "innisfree-jp",
+      rawOutput: INNISFREE_RAW_OUTPUT,
+      normalizedOutput: INNISFREE_NORMALIZED_OUTPUT,
+      targetCount: INNISFREE_TARGET_COUNT,
+    },
+  ];
+}
 
 function compactIsoForFilename(value: string): string {
   return value.replace(/[:.]/g, "-");
@@ -464,6 +563,34 @@ async function withNetworkRetry<T>(label: string, operation: () => Promise<T>): 
   throw lastError instanceof Error ? lastError : new Error(String(lastError));
 }
 
+function normalizeCharsetLabel(value: string | undefined): string | undefined {
+  const label = value?.trim().toLowerCase().replace(/^["']|["']$/g, "");
+  if (!label) return undefined;
+  if (label === "utf8") return "utf-8";
+  if (["euc_kr", "ks_c_5601-1987", "ks_c_5601", "cp949", "windows-949"].includes(label)) return "euc-kr";
+  return label;
+}
+
+function charsetFromContentType(value: string | null): string | undefined {
+  return normalizeCharsetLabel(value?.match(/charset\s*=\s*([^;\s]+)/i)?.[1]);
+}
+
+function charsetFromHtmlHead(buffer: ArrayBuffer): string | undefined {
+  const head = new TextDecoder("utf-8").decode(buffer.slice(0, 4096));
+  const charset = head.match(/<meta[^>]+charset=["']?\s*([^"'>\s/]+)/i)?.[1]
+    ?? head.match(/content=["'][^"']*charset\s*=\s*([^"'\s;]+)/i)?.[1];
+  return normalizeCharsetLabel(charset);
+}
+
+function decodeResponseBody(buffer: ArrayBuffer, contentType: string | null): string {
+  const charset = charsetFromContentType(contentType) ?? charsetFromHtmlHead(buffer) ?? "utf-8";
+  try {
+    return new TextDecoder(charset).decode(buffer);
+  } catch {
+    return new TextDecoder("utf-8").decode(buffer);
+  }
+}
+
 async function fetchText(url: string, accept = "text/plain,*/*;q=0.8"): Promise<string> {
   return withNetworkRetry(`GET ${url}`, async () => {
     const response = await fetch(url, {
@@ -474,7 +601,7 @@ async function fetchText(url: string, accept = "text/plain,*/*;q=0.8"): Promise<
       },
     });
     if (!response.ok) throw new Error(`${url} returned HTTP ${response.status}`);
-    return response.text();
+    return decodeResponseBody(await response.arrayBuffer(), response.headers.get("content-type"));
   });
 }
 
@@ -674,6 +801,31 @@ function himartMetaContent(html: string, property: string): string | undefined {
   return html.match(pattern)?.[1]?.trim();
 }
 
+function jsonLdTypeMatches(record: Record<string, unknown>, expectedType: string): boolean {
+  const value = record["@type"];
+  const types = Array.isArray(value) ? value : [value];
+  return types.some((type) => stringFrom(type).toLowerCase() === expectedType.toLowerCase());
+}
+
+function findProductJsonLdCandidate(candidate: unknown): Record<string, unknown> | null {
+  if (Array.isArray(candidate)) {
+    for (const item of candidate) {
+      const product = findProductJsonLdCandidate(item);
+      if (product) return product;
+    }
+    return null;
+  }
+
+  if (!candidate || typeof candidate !== "object") return null;
+  const record = candidate as Record<string, unknown>;
+  if (jsonLdTypeMatches(record, "Product")) return record;
+
+  const graph = record["@graph"];
+  if (Array.isArray(graph)) return findProductJsonLdCandidate(graph);
+
+  return null;
+}
+
 function findProductJsonLd(html: string): Record<string, unknown> | null {
   const scripts = Array.from(html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi));
   for (const script of scripts) {
@@ -682,13 +834,8 @@ function findProductJsonLd(html: string): Record<string, unknown> | null {
 
     try {
       const parsed = JSON.parse(text) as unknown;
-      const candidates = Array.isArray(parsed) ? parsed : [parsed];
-      const product = candidates.find((candidate) => {
-        if (!candidate || typeof candidate !== "object") return false;
-        const record = candidate as Record<string, unknown>;
-        return stringFrom(record["@type"]).toLowerCase() === "product";
-      });
-      if (product && typeof product === "object") return product as Record<string, unknown>;
+      const product = findProductJsonLdCandidate(parsed);
+      if (product) return product;
     } catch {
       continue;
     }
@@ -698,6 +845,14 @@ function findProductJsonLd(html: string): Record<string, unknown> | null {
 
 function nestedRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+function firstNestedRecord(value: unknown): Record<string, unknown> {
+  if (Array.isArray(value)) {
+    const record = value.find((candidate) => candidate && typeof candidate === "object" && !Array.isArray(candidate));
+    return nestedRecord(record);
+  }
+  return nestedRecord(value);
 }
 
 function himartCategoryPath(value: unknown): string[] {
@@ -870,6 +1025,254 @@ function robotsAllowsPath(audit: RobotsAuditResult | undefined, pathPrefix: stri
   if (!audit?.ok) return false;
   const decision = audit.decisions.find((candidate) => candidate.path.startsWith(pathPrefix));
   return decision?.allowed !== false;
+}
+
+function jsonLdProductIdFromUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    const lastPathPart = url.pathname.split("/").filter(Boolean).at(-1);
+    return lastPathPart || value;
+  } catch {
+    return value;
+  }
+}
+
+function absoluteUrl(value: string, baseUrl: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (trimmed.startsWith("//")) return `https:${trimmed}`;
+  try {
+    return new URL(trimmed, baseUrl).toString();
+  } catch {
+    return trimmed;
+  }
+}
+
+function jsonLdImageUrl(value: unknown, baseUrl: string): string | undefined {
+  if (typeof value === "string") {
+    const imageUrl = absoluteUrl(value, baseUrl);
+    return imageUrl || undefined;
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const imageUrl = jsonLdImageUrl(item, baseUrl);
+      if (imageUrl) return imageUrl;
+    }
+    return undefined;
+  }
+
+  const record = nestedRecord(value);
+  const url = stringFrom(record.url) || stringFrom(record.contentUrl);
+  return url ? absoluteUrl(url, baseUrl) : undefined;
+}
+
+function jsonLdBrandName(value: unknown, fallback: string): string {
+  if (typeof value === "string") return value.trim() || fallback;
+  const record = firstNestedRecord(value);
+  return stringFrom(record.name) || fallback;
+}
+
+function jsonLdCategoryPath(config: JsonLdMerchantConfig, value: unknown): string[] {
+  const rawCategory = stringFrom(value);
+  const parts = rawCategory
+    .split(/>|\/|\|/g)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (!parts.length) return [config.categoryRoot];
+  const rootAlreadyPresent = parts[0]?.toLowerCase() === config.categoryRoot.toLowerCase();
+  return rootAlreadyPresent ? parts : [config.categoryRoot, ...parts];
+}
+
+function priceInKrw(originalPrice: number, currency: string, krwRate: number): number {
+  if (currency.toUpperCase() === "KRW") return Math.round(originalPrice);
+  return originalPrice > 0 ? toKrwPrice(originalPrice, krwRate) : 0;
+}
+
+function normalizeJsonLdProduct(
+  config: JsonLdMerchantConfig,
+  rawProduct: JsonLdRawProduct,
+  collectedAt: string,
+): Product | null {
+  const product = rawProduct.product;
+  const offers = firstNestedRecord(product.offers);
+  const aggregateRating = firstNestedRecord(product.aggregateRating);
+  const title = stringFrom(product.name);
+  const sku = stringFrom(product.sku) || stringFrom(product.mpn) || rawProduct.productId;
+  const brand = jsonLdBrandName(product.brand, config.merchantName);
+  const currency = (stringFrom(offers.priceCurrency) || config.defaultCurrency).toUpperCase();
+  const originalPrice = numberFrom(offers.price) || numberFrom(offers.lowPrice);
+  const price = priceInKrw(originalPrice, currency, config.krwRate);
+  const categoryPath = jsonLdCategoryPath(config, product.category);
+  const productUrl = absoluteUrl(stringFrom(product.url) || rawProduct.productUrl, config.baseUrl);
+  const imageUrl = jsonLdImageUrl(product.image, config.baseUrl);
+  const description = stringFrom(product.description).slice(0, 700);
+  const availability = stringFrom(offers.availability);
+  const rating = numberFrom(aggregateRating.ratingValue);
+  const reviewCount = Math.round(numberFrom(aggregateRating.reviewCount) || numberFrom(aggregateRating.ratingCount));
+
+  if (!sku || !title || !productUrl || price <= 0) return null;
+
+  return {
+    merchantId: config.merchantId,
+    merchantName: config.merchantName,
+    productId: `${config.merchantId}-${rawProduct.productId}`,
+    sku,
+    title,
+    brand,
+    domain: config.domain,
+    categoryPath,
+    attributes: {
+      source: config.source,
+      productId: rawProduct.productId,
+      originalCurrency: currency,
+      originalPrice,
+      exchangeRateToKrw: config.krwRate,
+      description,
+      categoryLeaf: categoryPath.at(-1) ?? config.categoryRoot,
+    },
+    price,
+    currency: "KRW",
+    stockStatus: availability.includes("OutOfStock") ? "out_of_stock" : "in_stock",
+    rating,
+    reviewCount,
+    tags: cleanTags([
+      config.categoryRoot,
+      config.domain,
+      config.merchantName,
+      brand,
+      ...categoryPath,
+      ...title.split(/\s+/).slice(0, 8),
+    ]),
+    productUrl,
+    checkoutUrl: productUrl,
+    imageUrl,
+    metadataQuality: imageUrl && description ? 0.92 : 0.86,
+    sourceUpdatedAt: collectedAt,
+  };
+}
+
+async function fetchKurlyProductUrls(targetCount: number): Promise<string[]> {
+  const sitemapIndexXml = await fetchText(KURLY_SITEMAP_INDEX_URL, "application/xml,text/xml,*/*;q=0.8");
+  const sitemapUrls = extractLocValues(sitemapIndexXml)
+    .filter((url) => url.startsWith(`${KURLY_BASE_URL}/sitemap/goods-`));
+  const productUrls: string[] = [];
+
+  for (const sitemapUrl of sitemapUrls) {
+    try {
+      const sitemapXml = await fetchText(sitemapUrl, "application/xml,text/xml,*/*;q=0.8");
+      productUrls.push(...extractLocValues(sitemapXml).filter((url) => url.startsWith(`${KURLY_BASE_URL}/goods/`)));
+    } catch (error) {
+      console.warn(`kurly sitemap skipped (${sitemapUrl}): ${error instanceof Error ? error.message : String(error)}`);
+    }
+    if (productUrls.length >= targetCount * 4) break;
+  }
+
+  return Array.from(new Set(productUrls)).slice(0, targetCount * 4);
+}
+
+async function fetchStyleKoreanProductUrls(targetCount: number): Promise<string[]> {
+  const sitemapXml = await fetchText(STYLEKOREAN_PRODUCT_SITEMAP_URL, "application/xml,text/xml,*/*;q=0.8");
+  const productUrls = extractLocValues(sitemapXml)
+    .filter((url) => url.startsWith(`${STYLEKOREAN_BASE_URL}/product/`));
+  return Array.from(new Set(productUrls)).slice(0, targetCount * 3);
+}
+
+async function fetchJsonLdRawProduct(productUrl: string, collectedAt: string): Promise<JsonLdRawProduct | null> {
+  const html = await fetchText(productUrl, "text/html,*/*;q=0.8");
+  const product = findProductJsonLd(html);
+  if (!product) return null;
+
+  return {
+    productId: jsonLdProductIdFromUrl(productUrl),
+    productUrl,
+    collectedAt,
+    product,
+  };
+}
+
+async function collectJsonLdMerchant(
+  config: JsonLdMerchantConfig,
+  audit: RobotsAuditResult | undefined,
+  collectedAt: string,
+): Promise<CollectionResult> {
+  if (!robotsAllowsPath(audit, config.robotsPathPrefix)) {
+    return {
+      sourceId: config.merchantId,
+      status: "skipped",
+      count: 0,
+      targetCount: config.targetCount,
+      reason: `Current robots policy does not allow the sampled ${config.robotsPathPrefix} path for this collector.`,
+    };
+  }
+
+  const productUrls = await config.fetchProductUrls(config.targetCount);
+  if (!productUrls.length) {
+    return {
+      sourceId: config.merchantId,
+      status: "failed",
+      count: 0,
+      targetCount: config.targetCount,
+      reason: `${config.merchantName} sitemap did not return product detail URLs.`,
+    };
+  }
+
+  const rawProducts: JsonLdRawProduct[] = [];
+  const normalizedProducts: Product[] = [];
+
+  for (const productUrl of productUrls) {
+    try {
+      const rawProduct = await fetchJsonLdRawProduct(productUrl, collectedAt);
+      const normalizedProduct = rawProduct ? normalizeJsonLdProduct(config, rawProduct, collectedAt) : null;
+      if (rawProduct && normalizedProduct) {
+        rawProducts.push(rawProduct);
+        normalizedProducts.push(normalizedProduct);
+      }
+    } catch (error) {
+      console.warn(`${config.merchantId} product skipped (${productUrl}): ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    if (normalizedProducts.length % 25 === 0 && normalizedProducts.length > 0) {
+      console.log(`${config.merchantId} collection: ${normalizedProducts.length}/${config.targetCount} products saved in memory`);
+    }
+
+    if (normalizedProducts.length >= config.targetCount) break;
+    if (config.requestDelayMs > 0) await sleep(config.requestDelayMs);
+  }
+
+  await writeJson(config.rawOutput, {
+    merchantId: config.merchantId,
+    source: config.source,
+    baseUrl: config.baseUrl,
+    collectionPolicy: "Public sitemap + product detail Schema.org JSON-LD. robots.txt checked before collection; account/cart/payment paths are not collected.",
+    robotsAudit: audit,
+    targetCount: config.targetCount,
+    discoveredProductUrls: productUrls.length,
+    count: rawProducts.length,
+    collectedAt,
+    products: rawProducts,
+  });
+  await writeJson(config.normalizedOutput, {
+    merchantId: config.merchantId,
+    source: config.source,
+    targetCount: config.targetCount,
+    count: normalizedProducts.length,
+    collectedAt,
+    products: normalizedProducts,
+  });
+
+  return {
+    sourceId: config.merchantId,
+    status: normalizedProducts.length ? "collected" : "failed",
+    count: normalizedProducts.length,
+    targetCount: config.targetCount,
+    rawOutput: config.rawOutput,
+    normalizedOutput: config.normalizedOutput,
+    reason: normalizedProducts.length < config.targetCount
+      ? `Collected ${normalizedProducts.length}/${config.targetCount}; source returned fewer parseable products during this run.`
+      : undefined,
+  };
 }
 
 async function fetchShopifyProducts(baseUrl: string, targetCount: number): Promise<ShopifyProduct[]> {
@@ -1070,6 +1473,53 @@ async function collectCosrxCandidates(audit: RobotsAuditResult | undefined, coll
   };
 }
 
+async function readJsonFile(path: string): Promise<Record<string, unknown> | null> {
+  if (!existsSync(path)) return null;
+  try {
+    const parsed = JSON.parse(await readFile(path, "utf8")) as unknown;
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as Record<string, unknown> : null;
+  } catch {
+    return null;
+  }
+}
+
+function datasetCount(dataset: Record<string, unknown> | null): number {
+  if (!dataset) return 0;
+  const explicitCount = numberFrom(dataset.count);
+  if (explicitCount > 0) return explicitCount;
+  return Array.isArray(dataset.products) ? dataset.products.length : 0;
+}
+
+async function buildDatasetManifest(collectionResults: CollectionResult[]): Promise<Record<string, unknown>> {
+  const resultsByMerchant = new Map(collectionResults.map((result) => [result.sourceId, result]));
+  const merchants = await Promise.all(datasetManifestSources().map(async (source) => {
+    const normalized = await readJsonFile(source.normalizedOutput);
+    const raw = await readJsonFile(source.rawOutput);
+    const normalizedCount = datasetCount(normalized);
+    const rawCount = datasetCount(raw);
+    const result = resultsByMerchant.get(source.merchantId);
+    const status = result?.status
+      ?? (normalizedCount > 0 ? "available" : rawCount > 0 ? "candidate_only" : "not_collected");
+
+    return {
+      merchantId: source.merchantId,
+      status,
+      count: normalizedCount,
+      rawCount,
+      targetCount: result?.targetCount ?? source.targetCount,
+      rawOutput: source.rawOutput,
+      normalizedOutput: source.normalizedOutput,
+      reason: result?.reason
+        ?? (normalizedCount === 0 && rawCount > 0 ? "Raw candidates exist, but normalized runtime products are not available." : undefined),
+    };
+  }));
+
+  return {
+    targetProductsPerMerchant: MERCHANT_TARGET_COUNT,
+    merchants,
+  };
+}
+
 function summarizeSource(source: MerchantCollectionSource, audit: RobotsAuditResult | undefined): Record<string, unknown> {
   const allowedPaths = audit?.decisions.filter((decision) => decision.allowed).map((decision) => decision.path) ?? [];
   const blockedPaths = audit?.decisions.filter((decision) => !decision.allowed).map((decision) => ({
@@ -1123,6 +1573,42 @@ async function runOnce(): Promise<void> {
   if (shouldCollect("lotte-himart")) {
     collectionResults.push(await collectHimart(auditsById.get("lotte-himart"), collectedAt));
   }
+  if (shouldCollect("kurly")) {
+    collectionResults.push(await collectJsonLdMerchant({
+      merchantId: "kurly",
+      merchantName: "Kurly",
+      baseUrl: KURLY_BASE_URL,
+      rawOutput: KURLY_RAW_OUTPUT,
+      normalizedOutput: KURLY_NORMALIZED_OUTPUT,
+      targetCount: KURLY_TARGET_COUNT,
+      source: "kurly-goods-sitemap-jsonld",
+      domain: "food",
+      categoryRoot: "Food",
+      robotsPathPrefix: "/goods",
+      defaultCurrency: "KRW",
+      krwRate: 1,
+      requestDelayMs: KURLY_REQUEST_DELAY_MS,
+      fetchProductUrls: fetchKurlyProductUrls,
+    }, auditsById.get("kurly"), collectedAt));
+  }
+  if (shouldCollect("stylekorean")) {
+    collectionResults.push(await collectJsonLdMerchant({
+      merchantId: "stylekorean",
+      merchantName: "StyleKorean",
+      baseUrl: STYLEKOREAN_BASE_URL,
+      rawOutput: STYLEKOREAN_RAW_OUTPUT,
+      normalizedOutput: STYLEKOREAN_NORMALIZED_OUTPUT,
+      targetCount: STYLEKOREAN_TARGET_COUNT,
+      source: "stylekorean-product-sitemap-jsonld",
+      domain: "beauty",
+      categoryRoot: "Beauty",
+      robotsPathPrefix: "/product",
+      defaultCurrency: "USD",
+      krwRate: MARKETPLACE_USD_KRW_RATE,
+      requestDelayMs: STYLEKOREAN_REQUEST_DELAY_MS,
+      fetchProductUrls: fetchStyleKoreanProductUrls,
+    }, auditsById.get("stylekorean"), collectedAt));
+  }
   if (shouldCollect("cosrx-korea")) {
     collectionResults.push(await collectCosrxCandidates(auditsById.get("cosrx-korea"), collectedAt));
   }
@@ -1162,16 +1648,7 @@ async function runOnce(): Promise<void> {
 
   const manifest = {
     generatedAt: collectedAt,
-    targetProductsPerMerchant: MERCHANT_TARGET_COUNT,
-    merchants: collectionResults.map((result) => ({
-      merchantId: result.sourceId,
-      status: result.status,
-      count: result.count,
-      targetCount: result.targetCount,
-      rawOutput: result.rawOutput,
-      normalizedOutput: result.normalizedOutput,
-      reason: result.reason,
-    })),
+    ...(await buildDatasetManifest(collectionResults)),
   };
 
   await writeJson(statusOutput, status);
