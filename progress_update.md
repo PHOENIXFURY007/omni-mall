@@ -41,6 +41,7 @@ Main runtime features:
 - Widget product cards render images for every runtime product. Collected products use source image URLs; sample-only products use neutral placeholders.
 - Widget graph rendering now shows a nearest-neighbor board with seed/neighbor product images, edge relation, edge weight, and edge reason instead of raw product-id-only graph cards.
 - Widget `Similar` and `Checkout` buttons call MCP tools from inside the component and hydrate the returned structured result back into the widget. Tool descriptors set `openai/widgetAccessible: true`, and the widget URI is bumped to `ui://widget/omni-mall-products-v4.html` to avoid stale ChatGPT resource caching.
+- `graph-ui-v1` update changes the graph section into a real node-link visualization: product images are rendered as positioned graph vertices, SVG lines render the similarity/substitute/complement edges, and edge labels show relation + weight. The widget URI for this version is `ui://widget/omni-mall-products-graph-ui-v1.html`.
 - Merchant profiles for Shinsegae, Lotte, Lotte Hi-Mart, Kurly, StyleKorean, Olive Young, Daiso, and Amore Pacific.
 - Added runtime merchant profiles for Sulwhasoo US and Innisfree JP after public Shopify catalog collection.
 - Sample products remain for merchants without real datasets, but real collected datasets replace sample overlap for collected merchants.

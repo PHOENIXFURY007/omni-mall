@@ -1,4 +1,4 @@
-export const OMNI_MALL_WIDGET_URI = "ui://widget/omni-mall-products-v4.html";
+export const OMNI_MALL_WIDGET_URI = "ui://widget/omni-mall-products-graph-ui-v1.html";
 
 export const omniMallWidgetHtml = String.raw`<!doctype html>
 <html lang="en">
@@ -155,67 +155,131 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
       line-height: 1.45;
     }
 
-    .graphBoard {
-      display: grid;
-      grid-template-columns: minmax(150px, 0.75fr) minmax(0, 1.55fr);
-      gap: 10px;
+    .graphNetwork {
+      position: relative;
+      min-height: 420px;
       border: 1px solid #dfe4eb;
       background: #ffffff;
       border-radius: 8px;
-      padding: 10px;
+      overflow: hidden;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.55);
     }
 
-    .graphSeed,
-    .graphNeighbor {
-      min-width: 0;
-      border: 1px solid #e5e9ef;
-      background: #f8fafc;
+    .graphCanvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .graphLine {
+      stroke: #94a3b8;
+      stroke-width: 2.2;
+      opacity: 0.9;
+      vector-effect: non-scaling-stroke;
+    }
+
+    .graphLine.similar { stroke: #15803d; }
+    .graphLine.substitute { stroke: #2563eb; }
+    .graphLine.complement { stroke: #b45309; }
+
+    .graphText {
+      fill: #334155;
+      font-size: 3.1px;
+      font-weight: 720;
+      paint-order: stroke;
+      stroke: #ffffff;
+      stroke-width: 0.85px;
+      stroke-linejoin: round;
+    }
+
+    .graphNode {
+      position: absolute;
+      width: 118px;
+      min-height: 126px;
+      transform: translate(-50%, -50%);
+      border: 1px solid #d8dee8;
+      background: rgba(255, 255, 255, 0.96);
       border-radius: 8px;
-      padding: 9px;
-    }
-
-    .graphSeed {
-      align-self: stretch;
+      padding: 7px;
       display: grid;
-      gap: 8px;
-      align-content: start;
+      gap: 6px;
+      justify-items: center;
+      box-shadow: 0 8px 22px rgba(15, 23, 42, 0.1);
+      z-index: 2;
     }
 
-    .graphNeighbors {
-      display: grid;
-      gap: 8px;
-      min-width: 0;
+    .graphNode.seed {
+      width: 136px;
+      min-height: 146px;
+      border-color: #14532d;
+      box-shadow: 0 12px 28px rgba(20, 83, 45, 0.18);
     }
 
-    .graphNeighbor {
-      display: grid;
-      grid-template-columns: 56px minmax(0, 1fr);
-      gap: 9px;
-      align-items: center;
-    }
-
-    .graphThumb {
-      width: 56px;
-      height: 56px;
-      border-radius: 7px;
+    .graphNodeImage {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
       object-fit: cover;
       background: #eef1f5;
       border: 1px solid #e5e9ef;
     }
 
-    .graphEdge {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 6px;
-      font-size: 12px;
-      color: #536173;
+    .graphNode.seed .graphNodeImage {
+      width: 78px;
+      height: 78px;
     }
 
-    .edgeWeight {
-      color: #14532d;
+    .graphNodeTitle {
+      width: 100%;
+      color: #17202a;
+      font-size: 11px;
+      line-height: 1.22;
       font-weight: 720;
+      text-align: center;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
     }
+
+    .graphNodeMeta {
+      width: 100%;
+      color: #64748b;
+      font-size: 10px;
+      line-height: 1.2;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .graphLegend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+
+    .graphLegend .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legendDot {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      display: inline-block;
+      background: #94a3b8;
+    }
+
+    .legendDot.similar { background: #15803d; }
+    .legendDot.substitute { background: #2563eb; }
+    .legendDot.complement { background: #b45309; }
 
     .actions {
       display: flex;
@@ -295,8 +359,29 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
     }
 
     @media (max-width: 560px) {
-      .graphBoard {
-        grid-template-columns: 1fr;
+      .graphNetwork {
+        min-height: 500px;
+      }
+
+      .graphNode {
+        width: 96px;
+        min-height: 112px;
+        padding: 6px;
+      }
+
+      .graphNode.seed {
+        width: 112px;
+        min-height: 128px;
+      }
+
+      .graphNodeImage {
+        width: 54px;
+        height: 54px;
+      }
+
+      .graphNode.seed .graphNodeImage {
+        width: 64px;
+        height: 64px;
       }
     }
   </style>
@@ -504,34 +589,87 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
         var relatedEdges = data.graph.filter(function (edge) {
           return edge.sourceProductId === seedId || edge.targetProductId === seedId;
         });
-        if (!relatedEdges.length) relatedEdges = data.graph.slice(0, 6);
+        if (!relatedEdges.length) relatedEdges = data.graph.slice(0, 8);
+        relatedEdges = relatedEdges.slice(0, 8);
 
-        function miniNode(product, fallbackId, className) {
-          var title = product && product.title ? product.title : fallbackId;
-          var merchant = product && (product.merchantName || product.merchantId) ? (product.merchantName || product.merchantId) : "Graph node";
-          var image = product && product.imageUrl
-            ? '<img class="graphThumb" src="' + escapeHtml(product.imageUrl) + '" alt="' + escapeHtml(title) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />'
-            : '<div class="graphThumb" aria-hidden="true"></div>';
-          return '<div class="' + className + '">' +
+        function clamp(value, min, max) {
+          return Math.max(min, Math.min(max, value));
+        }
+
+        function relationClass(value) {
+          var relation = String(value || "similar").toLowerCase();
+          return relation === "substitute" || relation === "complement" ? relation : "similar";
+        }
+
+        var nodes = [{
+          id: seedId,
+          product: seed || productsById[seedId],
+          x: 50,
+          y: 50,
+          seed: true,
+        }];
+        var seenNodeIds = {};
+        seenNodeIds[seedId] = true;
+
+        relatedEdges.forEach(function (edge, index) {
+          var sourceConnected = edge.sourceProductId === seedId;
+          var neighborId = sourceConnected ? edge.targetProductId : edge.sourceProductId;
+          if (!neighborId || seenNodeIds[neighborId]) return;
+
+          var angle = (-90 + ((360 / Math.max(relatedEdges.length, 1)) * index)) * Math.PI / 180;
+          var radiusX = relatedEdges.length <= 4 ? 30 : 36;
+          var radiusY = relatedEdges.length <= 4 ? 29 : 34;
+          nodes.push({
+            id: neighborId,
+            product: productsById[neighborId],
+            x: clamp(50 + Math.cos(angle) * radiusX, 14, 86),
+            y: clamp(50 + Math.sin(angle) * radiusY, 18, 82),
+            seed: false,
+          });
+          seenNodeIds[neighborId] = true;
+        });
+
+        var nodesById = {};
+        nodes.forEach(function (node) {
+          nodesById[node.id] = node;
+        });
+
+        function graphNode(node) {
+          var product = node.product || {};
+          var title = product.title || node.id;
+          var merchant = product.merchantName || product.merchantId || "Graph node";
+          var image = product.imageUrl
+            ? '<img class="graphNodeImage" src="' + escapeHtml(product.imageUrl) + '" alt="' + escapeHtml(title) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />'
+            : '<div class="graphNodeImage" aria-hidden="true"></div>';
+          return '<div class="graphNode' + (node.seed ? " seed" : "") + '" style="left:' + escapeHtml(node.x) + '%;top:' + escapeHtml(node.y) + '%">' +
             image +
-            '<div class="cardHead">' +
-              '<div class="merchant">' + escapeHtml(merchant) + '</div>' +
-              '<div class="productTitle">' + escapeHtml(title) + '</div>' +
-            '</div>' +
+            '<div class="graphNodeTitle">' + escapeHtml(title) + '</div>' +
+            '<div class="graphNodeMeta">' + escapeHtml(merchant) + '</div>' +
           '</div>';
         }
 
-        var seedNode = miniNode(seed, seedId, "graphSeed");
-        var neighbors = relatedEdges.slice(0, 6).map(function (edge) {
-          var neighborId = edge.sourceProductId === seedId ? edge.targetProductId : edge.sourceProductId;
-          var product = productsById[neighborId];
-          return '<div>' +
-            miniNode(product, neighborId, "graphNeighbor") +
-            '<div class="graphEdge"><span>' + escapeHtml(edge.relation || "similar") + '</span><span class="edgeWeight">weight ' + escapeHtml(edge.weight) + '</span><span>' + escapeHtml(edge.reason || "") + '</span></div>' +
-          '</div>';
+        var edgeLines = relatedEdges.map(function (edge) {
+          var sourceNode = nodesById[edge.sourceProductId] || nodesById[seedId];
+          var targetNode = nodesById[edge.targetProductId];
+          if (!targetNode && edge.targetProductId === seedId) targetNode = nodesById[edge.sourceProductId];
+          if (!sourceNode || !targetNode || sourceNode.id === targetNode.id) return "";
+          var midX = (sourceNode.x + targetNode.x) / 2;
+          var midY = (sourceNode.y + targetNode.y) / 2;
+          var label = String(edge.relation || "similar") + " " + String(edge.weight || "");
+          return '<line class="graphLine ' + relationClass(edge.relation) + '" x1="' + escapeHtml(sourceNode.x) + '" y1="' + escapeHtml(sourceNode.y) + '" x2="' + escapeHtml(targetNode.x) + '" y2="' + escapeHtml(targetNode.y) + '"><title>' + escapeHtml(edge.reason || label) + '</title></line>' +
+            '<text class="graphText" x="' + escapeHtml(midX) + '" y="' + escapeHtml(midY) + '" text-anchor="middle">' + escapeHtml(label) + '</text>';
         }).join("");
 
-        return '<section class="section"><h2>Nearest-neighbor graph</h2><div class="graphBoard">' + seedNode + '<div class="graphNeighbors">' + neighbors + '</div></div></section>';
+        var graphNodes = nodes.map(graphNode).join("");
+        var legend = '<div class="graphLegend">' +
+          '<span class="pill"><span class="legendDot similar"></span>similar</span>' +
+          '<span class="pill"><span class="legendDot substitute"></span>substitute</span>' +
+          '<span class="pill"><span class="legendDot complement"></span>complement</span>' +
+          '</div>';
+        return '<section class="section"><h2>Graph UI v1</h2><div class="graphNetwork">' +
+          '<svg class="graphCanvas" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' + edgeLines + '</svg>' +
+          graphNodes +
+          '</div>' + legend + '</section>';
       }
 
       function renderAdapters(data) {
