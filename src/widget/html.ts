@@ -1,4 +1,4 @@
-export const OMNI_MALL_WIDGET_URI = "ui://widget/omni-mall-products-graph-ui-v1.html";
+export const OMNI_MALL_WIDGET_URI = "ui://widget/omni-mall-products-graph-ui-v2.html";
 
 export const omniMallWidgetHtml = String.raw`<!doctype html>
 <html lang="en">
@@ -311,6 +311,45 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
       opacity: 0.68;
     }
 
+    .thumbButton {
+      appearance: none;
+      width: 100%;
+      display: block;
+      padding: 0;
+      border: 0;
+      min-height: 0;
+      border-radius: 7px;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .thumbButton .thumb {
+      display: block;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+    }
+
+    .thumbButton:hover .thumb,
+    .thumbButton:focus-visible .thumb {
+      border-color: #14532d;
+      box-shadow: 0 8px 20px rgba(20, 83, 45, 0.13);
+      transform: translateY(-1px);
+    }
+
+    button.graphNode {
+      padding: 7px;
+      color: #17202a;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+    }
+
+    button.graphNode:hover,
+    button.graphNode:focus-visible {
+      border-color: #14532d;
+      box-shadow: 0 14px 30px rgba(20, 83, 45, 0.18);
+      transform: translate(-50%, -50%) scale(1.02);
+    }
+
     .section {
       margin-top: 14px;
     }
@@ -358,7 +397,97 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
       text-align: center;
     }
 
+    .detailPanel {
+      border: 1px solid #d4dde9;
+      background: #ffffff;
+      border-radius: 8px;
+      padding: 12px;
+      margin: 0 0 12px;
+      box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+    }
+
+    .detailHeader {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+
+    .detailHeader h2 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.25;
+      overflow-wrap: anywhere;
+    }
+
+    .detailBody {
+      display: grid;
+      grid-template-columns: 136px minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .detailImage {
+      width: 136px;
+      aspect-ratio: 1;
+      object-fit: cover;
+      border: 1px solid #e5e9ef;
+      border-radius: 8px;
+      background: #eef1f5;
+    }
+
+    .detailFacts {
+      display: grid;
+      gap: 8px;
+      min-width: 0;
+      font-size: 12px;
+      color: #344256;
+    }
+
+    .factGrid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 7px;
+    }
+
+    .fact {
+      border: 1px solid #edf0f4;
+      border-radius: 7px;
+      padding: 7px;
+      background: #f8fafc;
+      min-width: 0;
+    }
+
+    .factLabel {
+      color: #64748b;
+      font-size: 10px;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+
+    .factValue {
+      color: #17202a;
+      font-weight: 680;
+      overflow-wrap: anywhere;
+    }
+
+    .attributeList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
     @media (max-width: 560px) {
+      .detailBody {
+        grid-template-columns: 1fr;
+      }
+
+      .detailImage {
+        width: 100%;
+        max-height: 220px;
+      }
+
       .graphNetwork {
         min-height: 500px;
       }
@@ -395,6 +524,7 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
       var root = document.getElementById("root");
       var payload = null;
       var bootstrapTimer = null;
+      var selectedProductId = null;
 
       function notifyHeight() {
         try {
@@ -421,6 +551,26 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
         } catch (error) {
           return String(value || "");
         }
+      }
+
+      function displayValue(value) {
+        if (Array.isArray(value)) return value.join(", ");
+        if (value && typeof value === "object") return JSON.stringify(value);
+        if (typeof value === "boolean") return value ? "yes" : "no";
+        return value == null || value === "" ? "-" : String(value);
+      }
+
+      function merchantMix(data) {
+        var names = [];
+        var seen = {};
+        productList(data).concat(Array.isArray(data && data.graphProducts) ? data.graphProducts : []).forEach(function (product) {
+          var name = product && (product.merchantName || product.merchantId);
+          if (name && !seen[name]) {
+            seen[name] = true;
+            names.push(name);
+          }
+        });
+        return names;
       }
 
       function productList(data) {
@@ -539,6 +689,69 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
         return "OmniMall";
       }
 
+      function renderMerchantMix(data) {
+        var names = merchantMix(data);
+        if (names.length < 2) return "";
+        return '<div class="meta" style="margin-bottom:12px"><span class="pill">Sites shown</span>' +
+          names.slice(0, 8).map(function (name) {
+            return '<span class="pill">' + escapeHtml(name) + '</span>';
+          }).join("") +
+          (names.length > 8 ? '<span class="pill">+' + escapeHtml(names.length - 8) + ' more</span>' : "") +
+        '</div>';
+      }
+
+      function renderProductDetails(data) {
+        if (!selectedProductId) return "";
+        var product = productIndex(data)[selectedProductId];
+        if (!product) {
+          selectedProductId = null;
+          return "";
+        }
+
+        var category = Array.isArray(product.categoryPath) ? product.categoryPath.join(" > ") : "";
+        var tags = Array.isArray(product.tags) ? product.tags.slice(0, 8).map(function (tag) {
+          return '<span class="pill">' + escapeHtml(tag) + '</span>';
+        }).join("") : "";
+        var attributes = product.attributes && typeof product.attributes === "object"
+          ? Object.keys(product.attributes).slice(0, 10).map(function (key) {
+            return '<span class="pill">' + escapeHtml(key) + ': ' + escapeHtml(displayValue(product.attributes[key])) + '</span>';
+          }).join("")
+          : "";
+        var image = product.imageUrl
+          ? '<button class="thumbButton" data-action="open" data-url="' + escapeHtml(product.productUrl || "") + '" aria-label="Open ' + escapeHtml(product.title || "product") + '">' +
+              '<img class="detailImage" src="' + escapeHtml(product.imageUrl) + '" alt="' + escapeHtml(product.title || "Product image") + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />' +
+            '</button>'
+          : '<div class="detailImage" aria-hidden="true"></div>';
+
+        return '<section class="detailPanel" aria-live="polite">' +
+          '<div class="detailHeader">' +
+            '<div><div class="merchant">' + escapeHtml(product.merchantName || product.merchantId || "") + ' / ' + escapeHtml(product.domain || "") + '</div>' +
+            '<h2>' + escapeHtml(product.title || "Untitled product") + '</h2></div>' +
+            '<button data-action="close-details" aria-label="Close product details">Close</button>' +
+          '</div>' +
+          '<div class="detailBody">' +
+            image +
+            '<div class="detailFacts">' +
+              '<div class="factGrid">' +
+                '<div class="fact"><div class="factLabel">Brand</div><div class="factValue">' + escapeHtml(product.brand || "-") + '</div></div>' +
+                '<div class="fact"><div class="factLabel">Price</div><div class="factValue">' + formatKrw(product.price) + '</div></div>' +
+                '<div class="fact"><div class="factLabel">Stock</div><div class="factValue">' + escapeHtml(String(product.stockStatus || "-").replace(/_/g, " ")) + '</div></div>' +
+                '<div class="fact"><div class="factLabel">Rating</div><div class="factValue">' + escapeHtml(product.rating || "-") + ' (' + escapeHtml(product.reviewCount || 0) + ' reviews)</div></div>' +
+                '<div class="fact"><div class="factLabel">Category</div><div class="factValue">' + escapeHtml(category || "-") + '</div></div>' +
+                '<div class="fact"><div class="factLabel">Metadata</div><div class="factValue">' + escapeHtml(product.metadataQuality || "-") + '</div></div>' +
+              '</div>' +
+              (tags ? '<div class="attributeList">' + tags + '</div>' : "") +
+              (attributes ? '<div class="attributeList">' + attributes + '</div>' : "") +
+              '<div class="actions">' +
+                '<button data-action="open" data-url="' + escapeHtml(product.productUrl || "") + '">Open merchant page</button>' +
+                '<button data-action="similar" data-id="' + escapeHtml(product.productId || "") + '">Show graph</button>' +
+                '<button class="primary" data-action="checkout" data-id="' + escapeHtml(product.productId || "") + '">Checkout</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</section>';
+      }
+
       function renderProducts(data) {
         var products = productList(data);
         if (!products.length) return "";
@@ -549,7 +762,11 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
           var tags = Array.isArray(product.tags) ? product.tags.slice(0, 3).map(function (tag) {
             return '<span class="pill">' + escapeHtml(tag) + '</span>';
           }).join("") : "";
-          var image = product.imageUrl ? '<img class="thumb" src="' + escapeHtml(product.imageUrl) + '" alt="' + escapeHtml(product.title || "Product image") + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />' : "";
+          var image = product.imageUrl
+            ? '<button class="thumbButton" data-action="details" data-id="' + escapeHtml(product.productId || "") + '" aria-label="Show details for ' + escapeHtml(product.title || "product") + '">' +
+                '<img class="thumb" src="' + escapeHtml(product.imageUrl) + '" alt="' + escapeHtml(product.title || "Product image") + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />' +
+              '</button>'
+            : "";
           return '<article class="card">' +
             image +
             '<div class="cardHead">' +
@@ -641,11 +858,11 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
           var image = product.imageUrl
             ? '<img class="graphNodeImage" src="' + escapeHtml(product.imageUrl) + '" alt="' + escapeHtml(title) + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()" />'
             : '<div class="graphNodeImage" aria-hidden="true"></div>';
-          return '<div class="graphNode' + (node.seed ? " seed" : "") + '" style="left:' + escapeHtml(node.x) + '%;top:' + escapeHtml(node.y) + '%">' +
+          return '<button class="graphNode' + (node.seed ? " seed" : "") + '" data-action="details" data-id="' + escapeHtml(product.productId || node.id || "") + '" style="left:' + escapeHtml(node.x) + '%;top:' + escapeHtml(node.y) + '%" aria-label="Show details for ' + escapeHtml(title) + '">' +
             image +
             '<div class="graphNodeTitle">' + escapeHtml(title) + '</div>' +
             '<div class="graphNodeMeta">' + escapeHtml(merchant) + '</div>' +
-          '</div>';
+          '</button>';
         }
 
         var edgeLines = relatedEdges.map(function (edge) {
@@ -712,6 +929,8 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
         root.innerHTML =
           '<div class="topbar"><div class="title"><h1>OmniMall</h1><div class="subtitle">Cross-merchant product search, graph exploration, and checkout handoff.</div></div><span class="badge">' + escapeHtml(statusText(data)) + '</span></div>' +
           notice +
+          renderMerchantMix(data) +
+          renderProductDetails(data) +
           renderProducts(data) +
           renderComparison(data) +
           renderAdapters(data) +
@@ -779,6 +998,16 @@ export const omniMallWidgetHtml = String.raw`<!doctype html>
         if (!target) return;
         event.preventDefault();
         var action = target.getAttribute("data-action");
+        if (action === "details") {
+          selectedProductId = target.getAttribute("data-id");
+          render();
+          return;
+        }
+        if (action === "close-details") {
+          selectedProductId = null;
+          render();
+          return;
+        }
         if (action === "open") {
           await openExternal(target.getAttribute("data-url"));
         }

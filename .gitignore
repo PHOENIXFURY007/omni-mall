@@ -7,3 +7,5 @@ logs/
 *.log
 *.pid
 npm-debug.log*
+data/oauth-clients.json
+data/oauth-jwt-private-key.pem

@@ -3,6 +3,22 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
+import {
+  authChallenge,
+  currentJwks,
+  currentOAuthAuthorizationServerMetadata,
+  currentOpenIdConfiguration,
+  currentProtectedResourceMetadata,
+  googleAuthConfigured,
+  handleAuthorize,
+  handleClientRegistration,
+  handleGoogleCallback,
+  handleToken,
+  handleUserInfo,
+  normalizeBaseUrl,
+  verifyBearerAuth,
+  type RequestAuthContext,
+} from "./auth/google-oauth.js";
 import { registerOmniMallTools } from "./mcp/tools.js";
 import { registerWidgetResources } from "./mcp/resources.js";
 
@@ -18,6 +34,10 @@ function originFromRequest(req: IncomingMessage): string {
   return `${protocol}://${host}`;
 }
 
+function publicBaseUrlFromRequest(req: IncomingMessage): string {
+  return normalizeBaseUrl(process.env.PUBLIC_BASE_URL ?? originFromRequest(req));
+}
+
 function sendJson(res: ServerResponse, statusCode: number, payload: unknown): void {
   res.writeHead(statusCode, {
     "content-type": "application/json; charset=utf-8",
@@ -28,7 +48,7 @@ function sendJson(res: ServerResponse, statusCode: number, payload: unknown): vo
 
 function setMcpCors(res: ServerResponse): void {
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id");
+  res.setHeader("Access-Control-Expose-Headers", "Mcp-Session-Id,WWW-Authenticate");
 }
 
 function isMcpMethod(method: string | undefined): boolean {
@@ -39,13 +59,13 @@ function acceptsEventStream(req: IncomingMessage): boolean {
   return String(req.headers.accept ?? "").includes("text/event-stream");
 }
 
-function createOmniMallServer(appOrigin: string): McpServer {
+function createOmniMallServer(appOrigin: string, authContext: RequestAuthContext): McpServer {
   const server = new McpServer({
     name: SERVICE_NAME,
     version: VERSION,
   });
   registerWidgetResources(server, appOrigin);
-  registerOmniMallTools(server);
+  registerOmniMallTools(server, authContext);
   return server;
 }
 
@@ -71,8 +91,11 @@ function agentCard(baseUrl: string): Record<string, unknown> {
       "validate_merchant_mapping",
     ],
     auth: {
-      pocMode: "public sample catalog",
-      planned: ["OAuth 2.1 / PKCE", "session-bound OAuth", "merchant API tokens", "audit logging"],
+      pocMode: "public sample catalog with Google OAuth for checkout/current-user tools",
+      googleOAuthConfigured: googleAuthConfigured(),
+      protectedResourceMetadata: `${baseUrl}/.well-known/oauth-protected-resource/mcp`,
+      authorizationServerMetadata: `${baseUrl}/.well-known/oauth-authorization-server`,
+      planned: ["merchant API tokens", "audit logging", "cart persistence"],
     },
   };
 }
@@ -84,16 +107,61 @@ const httpServer = createServer(async (req, res) => {
   }
 
   const url = new URL(req.url, originFromRequest(req));
-  const appOrigin = originFromRequest(req);
+  const appOrigin = publicBaseUrlFromRequest(req);
 
   if (req.method === "OPTIONS" && url.pathname === MCP_PATH) {
     res.writeHead(204, {
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "POST, GET, DELETE, OPTIONS",
-      "Access-Control-Allow-Headers": "content-type, mcp-session-id, mcp-protocol-version",
-      "Access-Control-Expose-Headers": "Mcp-Session-Id",
+      "Access-Control-Allow-Headers": "authorization, content-type, mcp-session-id, mcp-protocol-version",
+      "Access-Control-Expose-Headers": "Mcp-Session-Id,WWW-Authenticate",
     });
     res.end();
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && /^\/.well-known\/oauth-protected-resource(?:\/.*)?$/.test(url.pathname)) {
+    sendJson(res, 200, currentProtectedResourceMetadata(appOrigin));
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && /^\/.well-known\/oauth-authorization-server(?:\/.*)?$/.test(url.pathname)) {
+    sendJson(res, 200, currentOAuthAuthorizationServerMetadata(appOrigin));
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/.well-known/openid-configuration") {
+    sendJson(res, 200, currentOpenIdConfiguration(appOrigin));
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/jwks") {
+    sendJson(res, 200, await currentJwks());
+    return;
+  }
+
+  if (url.pathname === "/register") {
+    await handleClientRegistration(req, res);
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/authorize") {
+    await handleAuthorize(req, res, appOrigin);
+    return;
+  }
+
+  if (url.pathname === "/token") {
+    await handleToken(req, res, appOrigin);
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/callback") {
+    await handleGoogleCallback(req, res, appOrigin);
+    return;
+  }
+
+  if ((req.method === "GET" || req.method === "HEAD") && url.pathname === "/userinfo") {
+    await handleUserInfo(req, res, appOrigin);
     return;
   }
 
@@ -104,6 +172,12 @@ const httpServer = createServer(async (req, res) => {
       version: VERSION,
       mcpPath: MCP_PATH,
       demoSurface: "ChatGPT Apps SDK",
+      auth: {
+        provider: "google",
+        configured: googleAuthConfigured(),
+        protectedResourceMetadata: `${appOrigin}/.well-known/oauth-protected-resource/mcp`,
+        authorizationServerMetadata: `${appOrigin}/.well-known/oauth-authorization-server`,
+      },
       note: "Use /mcp for Streamable HTTP MCP requests.",
     });
     return;
@@ -118,6 +192,10 @@ const httpServer = createServer(async (req, res) => {
       demoSurface: "ChatGPT Apps SDK",
       providers: ["OpenAI Agents SDK", "Claude Agent SDK", "Google ADK"],
       protocols: ["MCP", "A2A"],
+      auth: {
+        provider: "google",
+        configured: googleAuthConfigured(),
+      },
     });
     return;
   }
@@ -140,7 +218,8 @@ const httpServer = createServer(async (req, res) => {
 
   if (url.pathname === MCP_PATH && isMcpMethod(req.method)) {
     setMcpCors(res);
-    const mcpServer = createOmniMallServer(appOrigin);
+    const authContext = await verifyBearerAuth(req, appOrigin);
+    const mcpServer = createOmniMallServer(appOrigin, authContext);
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
       enableJsonResponse: true,
@@ -156,7 +235,9 @@ const httpServer = createServer(async (req, res) => {
       await transport.handleRequest(req, res);
     } catch (error: unknown) {
       if (!res.headersSent) {
-        res.writeHead(500, { "content-type": "application/json; charset=utf-8" });
+        const headers: Record<string, string> = { "content-type": "application/json; charset=utf-8" };
+        if (authContext.authError) headers["WWW-Authenticate"] = authChallenge(appOrigin, "invalid_token", authContext.authError);
+        res.writeHead(500, headers);
       }
       res.end(JSON.stringify({
         ok: false,

@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import {
+  currentOAuthAuthorizationServerMetadata,
+  currentOpenIdConfiguration,
+  currentProtectedResourceMetadata,
+} from "../src/auth/google-oauth.js";
 import { previewMerchantAdapters, validateMerchantMappings } from "../src/core/adapters.js";
 import { searchProducts, exploreSimilarProducts } from "../src/core/catalog.js";
 import { compareProducts } from "../src/core/compare.js";
@@ -39,6 +44,15 @@ test("explores product graph from a seed product", () => {
   assert.ok(result.graph.length > 0);
 });
 
+test("diversifies product graph across merchants when alternatives exist", () => {
+  const search = searchProducts({ query: "sunscreen", merchantIds: ["olive-young"], limit: 1 });
+  const result = exploreSimilarProducts(search.items[0]!.productId, 8);
+  const merchants = new Set(result.graphProducts.map((product) => product.merchantId));
+
+  assert.ok(result.seed);
+  assert.ok(merchants.size > 1, `expected cross-merchant graph, got ${Array.from(merchants).join(", ")}`);
+});
+
 test("compares selected products", () => {
   const search = searchProducts({ query: "beauty", limit: 3 });
   const result = compareProducts(search.items.slice(0, 2).map((product) => product.productId));
@@ -63,4 +77,20 @@ test("validates sample merchant adapters", () => {
 
   assert.equal(preview.coverage.merchantCount, 10);
   assert.ok(validation.results.every((result) => result.ok));
+});
+
+test("exposes Google OAuth metadata for ChatGPT MCP auth", () => {
+  const baseUrl = "https://omnimall.example.com";
+  const protectedResource = currentProtectedResourceMetadata(baseUrl);
+  const authorizationServer = currentOAuthAuthorizationServerMetadata(baseUrl);
+  const openid = currentOpenIdConfiguration(baseUrl);
+
+  assert.equal(protectedResource.resource, `${baseUrl}/mcp`);
+  assert.deepEqual(protectedResource.authorization_servers, [baseUrl]);
+  assert.ok((protectedResource.scopes_supported as string[]).includes("omnimall.checkout"));
+  assert.equal(authorizationServer.authorization_endpoint, `${baseUrl}/authorize`);
+  assert.equal(authorizationServer.token_endpoint, `${baseUrl}/token`);
+  assert.equal(authorizationServer.registration_endpoint, `${baseUrl}/register`);
+  assert.ok((authorizationServer.code_challenge_methods_supported as string[]).includes("S256"));
+  assert.equal(openid.userinfo_endpoint, `${baseUrl}/userinfo`);
 });

@@ -36,6 +36,16 @@ Core TypeScript project and scripts were added:
 Main runtime features:
 
 - MCP HTTP server in `src/server.ts`.
+- Google OAuth/OIDC-backed MCP auth is now implemented:
+  - OAuth protected resource metadata: `/.well-known/oauth-protected-resource/mcp`
+  - OAuth authorization server metadata: `/.well-known/oauth-authorization-server`
+  - OpenID metadata: `/.well-known/openid-configuration`
+  - Dynamic client registration: `POST /register`
+  - Authorization, token, callback, JWKS, and userinfo routes: `/authorize`, `/token`, `/callback`, `/jwks`, `/userinfo`
+  - Local tokens are signed by `data/oauth-jwt-private-key.pem`; generated OAuth runtime files are ignored by git.
+  - `create_checkout_link` and `mcp_current_user` require Google OAuth scope `omnimall.checkout` and return `mcp/www_authenticate` challenges when unauthenticated.
+  - Search, graph exploration, comparison, adapter preview, and validation remain public guest tools.
+  - Real Google login still requires server env vars: `PUBLIC_BASE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and `GOOGLE_REDIRECT_URI`.
 - Product search, zero-result fallback, graph recommendations, comparison, checkout link creation, adapter preview, and adapter validation.
 - ChatGPT Apps widget resources and CSP handling.
 - Widget product cards render images for every runtime product. Collected products use source image URLs; sample-only products use neutral placeholders.
@@ -50,12 +60,32 @@ Important runtime endpoint:
 
 - Local MCP: `http://127.0.0.1:8787/mcp`
 - Current ngrok endpoint: `https://0562-1-233-113-242.ngrok-free.app/mcp`
+- Current OAuth metadata URL for ChatGPT: `https://0562-1-233-113-242.ngrok-free.app/.well-known/oauth-protected-resource/mcp`
 
 ## Planning Documents
 
 - `plan_v1.md`: detailed development plan and architecture for Codex to follow.
 - `docs/data-collection-todo-v2.md`: data collection backlog and source status for merchants that were not fully collectable in V1.
 - `progress_update.md`: this file.
+
+## Latest Auth Verification
+
+Completed after adding Google OAuth support:
+
+- `npm test`
+- `npm run test:e2e`
+- `npm run smoke`
+- Restarted local server on `127.0.0.1:8787` with `PUBLIC_BASE_URL=https://0562-1-233-113-242.ngrok-free.app`.
+- Verified local and ngrok OAuth metadata endpoints return `200` and advertise:
+  - issuer `https://0562-1-233-113-242.ngrok-free.app`
+  - authorization endpoint `/authorize`
+  - token endpoint `/token`
+  - registration endpoint `/register`
+  - scope `omnimall.checkout`
+
+Current caveat:
+
+- `healthz.auth.configured` is `false` until Google Cloud OAuth credentials are provided in the server environment. ChatGPT can discover OAuth, but a real Gmail/Google sign-in cannot complete without those credentials and the matching Google redirect URI.
 
 ## Data Collection
 

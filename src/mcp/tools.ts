@@ -3,6 +3,13 @@ import type { McpServer, ToolCallback } from "@modelcontextprotocol/sdk/server/m
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z, type ZodRawShape } from "zod";
 
+import {
+  authRequiredResult,
+  CHECKOUT_SCOPE,
+  missingRequiredScope,
+  OAUTH_SECURITY_SCHEMES,
+  type RequestAuthContext,
+} from "../auth/google-oauth.js";
 import { MERCHANT_IDS, type MerchantId } from "../types.js";
 import { previewMerchantAdapters, validateMerchantMappings } from "../core/adapters.js";
 import { searchProducts, exploreSimilarProducts } from "../core/catalog.js";
@@ -155,7 +162,7 @@ function registerCompareProducts(server: McpServer): void {
   );
 }
 
-function registerCheckout(server: McpServer): void {
+function registerCheckout(server: McpServer, authContext: RequestAuthContext): void {
   registerAppTool(
     server,
     "create_checkout_link",
@@ -163,16 +170,21 @@ function registerCheckout(server: McpServer): void {
       title: "Create checkout link",
       description: "Create an external merchant checkout link after explicit user confirmation.",
       inputSchema: checkoutInputSchema,
+      securitySchemes: OAUTH_SECURITY_SCHEMES,
       annotations: { readOnlyHint: false, openWorldHint: true, destructiveHint: false },
       _meta: {
+        securitySchemes: OAUTH_SECURITY_SCHEMES,
         ui: { resourceUri: OMNI_MALL_WIDGET_URI, visibility: ["model", "app"] },
         "openai/outputTemplate": OMNI_MALL_WIDGET_URI,
         "openai/widgetAccessible": true,
         "openai/toolInvocation/invoking": "Preparing checkout handoff...",
         "openai/toolInvocation/invoked": "Checkout handoff ready",
       },
-    },
+    } as never,
     (async (args: unknown) => {
+      if (missingRequiredScope(authContext.auth, CHECKOUT_SCOPE)) {
+        return authRequiredResult(authContext.baseUrl, "Google login is required before checkout handoff.") as CallToolResult;
+      }
       const input = args as { productId: string; confirmed?: boolean };
       const result = createCheckoutLink(input.productId, Boolean(input.confirmed));
       const lines = [
@@ -180,6 +192,46 @@ function registerCheckout(server: McpServer): void {
         result.checkoutUrl ? `Checkout URL: ${result.checkoutUrl}` : "",
       ].filter(Boolean);
       return textResult(lines.join("\n"), result);
+    }) as ToolHandler,
+  );
+}
+
+function registerCurrentUser(server: McpServer, authContext: RequestAuthContext): void {
+  registerAppTool(
+    server,
+    "mcp_current_user",
+    {
+      title: "Current signed-in user",
+      description: "Return the currently authenticated Google user for the OmniMall MCP session.",
+      inputSchema: {},
+      securitySchemes: OAUTH_SECURITY_SCHEMES,
+      annotations: { readOnlyHint: true, openWorldHint: false, destructiveHint: false },
+      _meta: {
+        securitySchemes: OAUTH_SECURITY_SCHEMES,
+        "openai/toolInvocation/invoking": "Checking OmniMall sign-in...",
+        "openai/toolInvocation/invoked": "OmniMall sign-in checked",
+      },
+    } as never,
+    (async () => {
+      if (!authContext.auth) {
+        return authRequiredResult(authContext.baseUrl, "Google login is required to identify the current OmniMall user.") as CallToolResult;
+      }
+
+      const result = {
+        type: "current_user",
+        authenticated: true,
+        authProvider: "google",
+        scopes: authContext.auth.scopes,
+        user: {
+          sub: authContext.auth.user.sub,
+          email: authContext.auth.user.email,
+          emailVerified: authContext.auth.user.emailVerified,
+          name: authContext.auth.user.name,
+          hostedDomain: authContext.auth.user.hostedDomain,
+        },
+      };
+      const label = result.user.email ?? result.user.name ?? result.user.sub;
+      return textResult(`Signed in as ${label}.`, result);
     }) as ToolHandler,
   );
 }
@@ -240,11 +292,12 @@ function registerValidation(server: McpServer): void {
   );
 }
 
-export function registerOmniMallTools(server: McpServer): void {
+export function registerOmniMallTools(server: McpServer, authContext: RequestAuthContext): void {
   registerSearchProducts(server);
   registerSimilarProducts(server);
   registerCompareProducts(server);
-  registerCheckout(server);
+  registerCheckout(server, authContext);
+  registerCurrentUser(server, authContext);
   registerAdapterPreview(server);
   registerValidation(server);
 }

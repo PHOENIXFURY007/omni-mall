@@ -139,6 +139,37 @@ function sortRanked(items: RankedProduct[]): RankedProduct[] {
   });
 }
 
+function diversifyRankedProducts(items: RankedProduct[], limit: number): RankedProduct[] {
+  const selected: RankedProduct[] = [];
+  const selectedIds = new Set<string>();
+  const merchantCounts = new Map<MerchantId, number>();
+
+  function add(product: RankedProduct): boolean {
+    if (selected.length >= limit || selectedIds.has(product.productId)) return false;
+    selected.push(product);
+    selectedIds.add(product.productId);
+    merchantCounts.set(product.merchantId, (merchantCounts.get(product.merchantId) ?? 0) + 1);
+    return true;
+  }
+
+  for (const product of items) {
+    if ((merchantCounts.get(product.merchantId) ?? 0) === 0) add(product);
+    if (selected.length >= limit) return selected;
+  }
+
+  for (const product of items) {
+    if ((merchantCounts.get(product.merchantId) ?? 0) < 2) add(product);
+    if (selected.length >= limit) return selected;
+  }
+
+  for (const product of items) {
+    add(product);
+    if (selected.length >= limit) return selected;
+  }
+
+  return selected;
+}
+
 function inferEdgeRelation(seed: Product, target: Product): ProductGraphEdge["relation"] {
   if (seed.domain !== target.domain) return "complement";
   if (seed.merchantId !== target.merchantId) return "substitute";
@@ -155,6 +186,66 @@ function edgeWeight(left: Product, right: Product): number {
 
 export function findProduct(productId: string): Product | undefined {
   return PRODUCT_CATALOG.find((product) => product.productId === productId);
+}
+
+function edgeDiversityScore(edge: ProductGraphEdge): number {
+  const source = findProduct(edge.sourceProductId);
+  const target = findProduct(edge.targetProductId);
+  const crossMerchantBoost = source && target && source.merchantId !== target.merchantId ? 0.22 : 0;
+  const substituteBoost = edge.relation === "substitute" ? 0.05 : 0;
+  return edge.weight + crossMerchantBoost + substituteBoost;
+}
+
+function diversifyGraphEdges(edges: ProductGraphEdge[], limit: number): ProductGraphEdge[] {
+  const sorted = [...edges].sort((left, right) => edgeDiversityScore(right) - edgeDiversityScore(left));
+  const selected: ProductGraphEdge[] = [];
+  const selectedKeys = new Set<string>();
+  const targetMerchantCounts = new Map<MerchantId, number>();
+
+  function add(edge: ProductGraphEdge): boolean {
+    if (selected.length >= limit) return false;
+    const key = `${edge.sourceProductId}->${edge.targetProductId}`;
+    if (selectedKeys.has(key)) return false;
+    const target = findProduct(edge.targetProductId);
+    selected.push(edge);
+    selectedKeys.add(key);
+    if (target) {
+      targetMerchantCounts.set(target.merchantId, (targetMerchantCounts.get(target.merchantId) ?? 0) + 1);
+    }
+    return true;
+  }
+
+  const crossMerchantEdges = sorted.filter((edge) => {
+    const source = findProduct(edge.sourceProductId);
+    const target = findProduct(edge.targetProductId);
+    return Boolean(source && target && source.merchantId !== target.merchantId);
+  });
+  const crossMerchantQuota = Math.min(crossMerchantEdges.length, Math.ceil(limit * 0.65));
+
+  for (const edge of crossMerchantEdges) {
+    const target = findProduct(edge.targetProductId);
+    if (target && (targetMerchantCounts.get(target.merchantId) ?? 0) === 0) add(edge);
+    if (selected.length >= crossMerchantQuota) break;
+  }
+
+  for (const edge of crossMerchantEdges) {
+    const target = findProduct(edge.targetProductId);
+    if (target && (targetMerchantCounts.get(target.merchantId) ?? 0) < 2) add(edge);
+    if (selected.length >= crossMerchantQuota) break;
+  }
+
+  for (const edge of sorted) {
+    const target = findProduct(edge.targetProductId);
+    if (target && (targetMerchantCounts.get(target.merchantId) ?? 0) < 3) add(edge);
+    if (selected.length >= limit) break;
+  }
+
+  for (const edge of sorted) {
+    add(edge);
+    if (selected.length >= limit) break;
+  }
+
+  return selected;
 }
 
 export function buildGraph(seedProductIds: string[], limit = 12): ProductGraphEdge[] {
@@ -179,9 +270,7 @@ export function buildGraph(seedProductIds: string[], limit = 12): ProductGraphEd
     }
   }
 
-  return edges
-    .sort((left, right) => right.weight - left.weight)
-    .slice(0, limit);
+  return diversifyGraphEdges(edges, limit);
 }
 
 function productsForGraph(edges: ProductGraphEdge[]): Product[] {
@@ -226,7 +315,7 @@ export function searchProducts(input: SearchProductsInput): SearchProductsResult
     );
   }
 
-  const items = ranked.slice(0, limit);
+  const items = effectiveInput.merchantIds?.length ? ranked.slice(0, limit) : diversifyRankedProducts(ranked, limit);
   const graph = buildGraph(items.map((product) => product.productId), 10);
   const durationMs = nowMs() - startedAt;
 
@@ -273,12 +362,12 @@ export function exploreSimilarProducts(productId: string, limitInput?: number): 
     graphBoostByProductId.set(edge.targetProductId, Math.max(graphBoostByProductId.get(edge.targetProductId) ?? 0, edge.weight * 20));
   }
 
-  const ranked = sortRanked(
+  const ranked = diversifyRankedProducts(sortRanked(
     PRODUCT_CATALOG
       .filter((product) => product.productId !== seed.productId)
       .map((product) => rankProduct(product, `${seed.title} ${seed.tags.join(" ")}`, tokenize(`${seed.title} ${seed.tags.join(" ")}`), graphBoostByProductId.get(product.productId) ?? 0))
       .filter((product) => graphBoostByProductId.has(product.productId) || product.domain === seed.domain),
-  ).slice(0, limit);
+  ), limit);
 
   return {
     type: "similar_products",
