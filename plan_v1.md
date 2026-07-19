@@ -1,5 +1,28 @@
 # OmniMall Development Plan v1
-
+결과보고서항목소개
+1
+제안서의현업문제정의
+제안서내용기재
+2
+제안서대비달성현황
+제안서에목표한내용대비달성내역
+미달성/변경초과달성항목명시
+3
+과제수행결과
+문제해결성과중심으로서술
+상세한시스템설명은다음장에기재
+4
+과제시스템설명
+주요기능및AI 기술설명
+성능개선포인트, 동작하는화면
+5
+시스템구조설명
+블록다이어그램
+주요구성요소, 외부연계포함전체흐름설명
+6
+소스코드설명
+파일·디렉토리역할안내
+주요모듈·패키지역할설명
 Date: 2026-07-08
 
 This document is the working instruction plan for future Codex development of OmniMall. It refines the README proposal and should be read before implementation work begins.
