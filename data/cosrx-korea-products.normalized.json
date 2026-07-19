@@ -1,9 +1,0 @@
-{
-  "merchantId": "cosrx-korea",
-  "source": "cosrx-sitemap-product-candidates",
-  "targetCount": 500,
-  "count": 0,
-  "collectedAt": "2026-07-10T08:55:42.599Z",
-  "products": [],
-  "reason": "COSRX MakeShop detail/category pages returned anti-abuse block content to the collector IP; approved source/feed is needed before runtime normalization."
-}

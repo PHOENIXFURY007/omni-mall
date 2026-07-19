@@ -197,18 +197,6 @@ export const MERCHANT_COLLECTION_SOURCES: MerchantCollectionSource[] = [
     collectionNotes: ["robots.txt allows some public access, but no product-level sitemap/feed was confirmed in the quick audit."],
   },
   {
-    id: "cosrx-korea",
-    displayName: "COSRX Korea",
-    baseUrl: "https://cosrx.co.kr",
-    samplePaths: ["/", "/sitemap.xml", "/shop/shopdetail.html?branduid=1176367"],
-    collectionStatus: "needs_source_confirmation",
-    collectionNotes: [
-      "robots.txt allows / and disallows /makeshop/.",
-      "sitemap.xml exposes product-like shop/shopdetail.html URLs.",
-      "Product/category detail requests returned a MakeShop anti-abuse page for the collector IP during implementation, so only URL candidates are saved until approved access or a stable feed is available.",
-    ],
-  },
-  {
     id: "sulwhasoo-us",
     displayName: "Sulwhasoo US",
     baseUrl: "https://us.sulwhasoo.com",

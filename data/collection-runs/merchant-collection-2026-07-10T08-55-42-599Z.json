@@ -312,71 +312,6 @@
       }
     },
     {
-      "id": "cosrx-korea",
-      "displayName": "COSRX Korea",
-      "baseUrl": "https://cosrx.co.kr",
-      "collectionStatus": "needs_source_confirmation",
-      "collectionNotes": [
-        "robots.txt allows / and disallows /makeshop/.",
-        "sitemap.xml exposes product-like shop/shopdetail.html URLs.",
-        "Product/category detail requests returned a MakeShop anti-abuse page for the collector IP during implementation, so only URL candidates are saved until approved access or a stable feed is available."
-      ],
-      "robots": {
-        "ok": true,
-        "robotsUrl": "https://cosrx.co.kr/robots.txt",
-        "status": 200,
-        "isRobotsText": true,
-        "sitemaps": [],
-        "decisions": [
-          {
-            "path": "/",
-            "allowed": true,
-            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
-            "matchedAgents": [
-              "*"
-            ],
-            "matchedRule": {
-              "type": "allow",
-              "pattern": "/",
-              "line": 2
-            }
-          },
-          {
-            "path": "/sitemap.xml",
-            "allowed": true,
-            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
-            "matchedAgents": [
-              "*"
-            ],
-            "matchedRule": {
-              "type": "allow",
-              "pattern": "/",
-              "line": 2
-            }
-          },
-          {
-            "path": "/shop/shopdetail.html?branduid=1176367",
-            "allowed": true,
-            "userAgent": "OmniMall-PoC-Collector/0.1 (+robots-aware public data collection)",
-            "matchedAgents": [
-              "*"
-            ],
-            "matchedRule": {
-              "type": "allow",
-              "pattern": "/",
-              "line": 2
-            }
-          }
-        ],
-        "allowedPaths": [
-          "/",
-          "/sitemap.xml",
-          "/shop/shopdetail.html?branduid=1176367"
-        ],
-        "blockedPaths": []
-      }
-    },
-    {
       "id": "sulwhasoo-us",
       "displayName": "Sulwhasoo US",
       "baseUrl": "https://us.sulwhasoo.com",
@@ -711,15 +646,6 @@
     }
   ],
   "collectionResults": [
-    {
-      "sourceId": "cosrx-korea",
-      "status": "skipped",
-      "count": 0,
-      "targetCount": 500,
-      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\cosrx-korea-products.raw.json",
-      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\cosrx-korea-products.normalized.json",
-      "reason": "Saved 216 sitemap product candidates, but normalized collection was not possible because detail/category pages returned anti-abuse block content."
-    },
     {
       "sourceId": "sulwhasoo-us",
       "status": "collected",

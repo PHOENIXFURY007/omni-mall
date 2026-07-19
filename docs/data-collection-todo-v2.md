@@ -42,13 +42,11 @@ This file tracks merchants from the screenshot list where product collection was
 | Lotte Wellfood | Needs valid robots/source | `robots.txt` was not available during audit. | Confirm official product domain, robots policy, and product feed/sitemap. |
 | Lotte Chilsung | Needs valid source | Candidate mall domain failed during audit. | Confirm official commerce URL or approved product feed/API. |
 | CJ OnStyle | Needs valid robots/source | `robots.txt` request returned HTML, so policy is ambiguous. | Confirm valid robots endpoint and product metadata source before collecting. |
-| COSRX Korea | Candidate URLs only | `sitemap.xml` exposes 216 product-like URLs, but MakeShop detail/category pages returned anti-abuse block content to the collector IP. | Use approved feed/API or collect after explicit permission/stable access; do not bypass anti-abuse page. |
 
 ## Additional Sources Found On 2026-07-10
 
 | Source | Robots / source check | Public product availability | V2 action |
 | --- | --- | --- | --- |
-| COSRX Korea, `https://cosrx.co.kr/robots.txt` | Allows `/`; disallows `/makeshop/`. `sitemap.xml` is available. | `data/cosrx-korea-products.raw.json` saves 216 product-like `shop/shopdetail.html` candidates; normalized file is empty because detail/category pages returned anti-abuse block content. | Use approved feed/API or explicit crawl permission before product-detail normalization. |
 | Sulwhasoo US, `https://us.sulwhasoo.com/robots.txt` | Shopify storefront allows public product/collection/page HTML. Private checkout/cart/account paths are restricted. UCP/MCP discovery is available. | `data/sulwhasoo-us-products.normalized.json` contains 115 public products. | Runtime collector implemented. 500 requires variants, bundles, additional locales, or partner feed. |
 | Innisfree JP, `https://www.innisfree.jp/robots.txt` | Shopify storefront allows public product/collection/page HTML. Private checkout/cart/account paths are restricted. UCP/MCP discovery is available. | `data/innisfree-jp-products.normalized.json` contains 127 public products. | Runtime collector implemented. 500 requires variants, additional locales, or partner feed. |
 | Kurly, `https://www.kurly.com/robots.txt` | Public goods paths and sitemap index were usable for the generic collector; private/account/order paths are not collected. | `data/kurly-products.normalized.json` contains 500 public products. | Runtime collector implemented. |

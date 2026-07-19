@@ -177,11 +177,6 @@ const STYLEKOREAN_RAW_OUTPUT = join(dataDir, "stylekorean-products.raw.json");
 const STYLEKOREAN_NORMALIZED_OUTPUT = join(dataDir, "stylekorean-products.normalized.json");
 const STYLEKOREAN_TARGET_COUNT = Math.max(1, Number(process.env.STYLEKOREAN_TARGET_COUNT ?? MERCHANT_TARGET_COUNT));
 const STYLEKOREAN_REQUEST_DELAY_MS = Math.max(0, Number(process.env.STYLEKOREAN_REQUEST_DELAY_MS ?? 75));
-const COSRX_BASE_URL = "https://cosrx.co.kr";
-const COSRX_SITEMAP_URL = `${COSRX_BASE_URL}/sitemap.xml`;
-const COSRX_RAW_OUTPUT = join(dataDir, "cosrx-korea-products.raw.json");
-const COSRX_NORMALIZED_OUTPUT = join(dataDir, "cosrx-korea-products.normalized.json");
-const COSRX_TARGET_COUNT = Math.max(1, Number(process.env.COSRX_TARGET_COUNT ?? MERCHANT_TARGET_COUNT));
 const SULWHASOO_BASE_URL = "https://us.sulwhasoo.com";
 const SULWHASOO_RAW_OUTPUT = join(dataDir, "sulwhasoo-us-products.raw.json");
 const SULWHASOO_NORMALIZED_OUTPUT = join(dataDir, "sulwhasoo-us-products.normalized.json");
@@ -228,12 +223,6 @@ function datasetManifestSources(): DatasetManifestSource[] {
       rawOutput: STYLEKOREAN_RAW_OUTPUT,
       normalizedOutput: STYLEKOREAN_NORMALIZED_OUTPUT,
       targetCount: STYLEKOREAN_TARGET_COUNT,
-    },
-    {
-      merchantId: "cosrx-korea",
-      rawOutput: COSRX_RAW_OUTPUT,
-      normalizedOutput: COSRX_NORMALIZED_OUTPUT,
-      targetCount: COSRX_TARGET_COUNT,
     },
     {
       merchantId: "sulwhasoo-us",
@@ -1412,67 +1401,6 @@ async function collectShopifyMerchant(
   };
 }
 
-function cosrxProductIdFromUrl(value: string): string {
-  try {
-    return new URL(value).searchParams.get("branduid") ?? value;
-  } catch {
-    return value;
-  }
-}
-
-async function collectCosrxCandidates(audit: RobotsAuditResult | undefined, collectedAt: string): Promise<CollectionResult> {
-  if (!robotsAllowsPath(audit, "/sitemap.xml")) {
-    return {
-      sourceId: "cosrx-korea",
-      status: "skipped",
-      count: 0,
-      targetCount: COSRX_TARGET_COUNT,
-      reason: "Current robots policy does not allow sitemap inspection for this collector.",
-    };
-  }
-
-  const sitemapXml = await fetchText(COSRX_SITEMAP_URL, "application/xml,text/xml,*/*;q=0.8");
-  const productUrls = extractLocValues(sitemapXml)
-    .map((url) => url.replace(/^http:\/\/www\.cosrx\.co\.kr/i, COSRX_BASE_URL))
-    .filter((url) => /\/shop\/shopdetail\.html/i.test(url))
-    .slice(0, COSRX_TARGET_COUNT);
-
-  await writeJson(COSRX_RAW_OUTPUT, {
-    merchantId: "cosrx-korea",
-    source: "cosrx-sitemap-product-candidates",
-    sitemapUrl: COSRX_SITEMAP_URL,
-    collectionPolicy: "robots.txt allows sitemap/product candidate discovery. Detail/category pages returned a MakeShop anti-abuse page for the collector IP, so normalized product metadata is not generated.",
-    robotsAudit: audit,
-    targetCount: COSRX_TARGET_COUNT,
-    count: productUrls.length,
-    collectedAt,
-    products: productUrls.map((productUrl) => ({
-      productUrl,
-      productId: cosrxProductIdFromUrl(productUrl),
-      status: "candidate_only",
-    })),
-  });
-  await writeJson(COSRX_NORMALIZED_OUTPUT, {
-    merchantId: "cosrx-korea",
-    source: "cosrx-sitemap-product-candidates",
-    targetCount: COSRX_TARGET_COUNT,
-    count: 0,
-    collectedAt,
-    products: [],
-    reason: "COSRX MakeShop detail/category pages returned anti-abuse block content to the collector IP; approved source/feed is needed before runtime normalization.",
-  });
-
-  return {
-    sourceId: "cosrx-korea",
-    status: "skipped",
-    count: 0,
-    targetCount: COSRX_TARGET_COUNT,
-    rawOutput: COSRX_RAW_OUTPUT,
-    normalizedOutput: COSRX_NORMALIZED_OUTPUT,
-    reason: `Saved ${productUrls.length} sitemap product candidates, but normalized collection was not possible because detail/category pages returned anti-abuse block content.`,
-  };
-}
-
 async function readJsonFile(path: string): Promise<Record<string, unknown> | null> {
   if (!existsSync(path)) return null;
   try {
@@ -1608,9 +1536,6 @@ async function runOnce(): Promise<void> {
       requestDelayMs: STYLEKOREAN_REQUEST_DELAY_MS,
       fetchProductUrls: fetchStyleKoreanProductUrls,
     }, auditsById.get("stylekorean"), collectedAt));
-  }
-  if (shouldCollect("cosrx-korea")) {
-    collectionResults.push(await collectCosrxCandidates(auditsById.get("cosrx-korea"), collectedAt));
   }
   if (shouldCollect("sulwhasoo-us")) {
     collectionResults.push(await collectShopifyMerchant({

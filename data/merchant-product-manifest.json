@@ -48,16 +48,6 @@
       "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\stylekorean-products.normalized.json"
     },
     {
-      "merchantId": "cosrx-korea",
-      "status": "candidate_only",
-      "count": 0,
-      "rawCount": 216,
-      "targetCount": 500,
-      "rawOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\cosrx-korea-products.raw.json",
-      "normalizedOutput": "C:\\Users\\SDS\\workspace\\omni-mall\\data\\cosrx-korea-products.normalized.json",
-      "reason": "Raw candidates exist, but normalized runtime products are not available."
-    },
-    {
       "merchantId": "sulwhasoo-us",
       "status": "available",
       "count": 115,

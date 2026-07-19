@@ -103,12 +103,6 @@ Collected datasets:
 | Sulwhasoo US | `data/sulwhasoo-us-products.raw.json` | `data/sulwhasoo-us-products.normalized.json` | 115 | Public Shopify products JSON |
 | Innisfree JP | `data/innisfree-jp-products.raw.json` | `data/innisfree-jp-products.normalized.json` | 127 | Public Shopify products JSON |
 
-Candidate-only dataset:
-
-| Source | Raw file | Normalized file | Count | Status |
-| --- | --- | --- | ---: | --- |
-| COSRX Korea | `data/cosrx-korea-products.raw.json` | `data/cosrx-korea-products.normalized.json` | 216 URL candidates, 0 normalized products | MakeShop detail/category pages returned anti-abuse block content to the collector IP. Do not bypass; use approved feed/API or explicit permission. |
-
 Collection status files:
 
 - `data/merchant-collection-status.json`
@@ -129,11 +123,6 @@ Robots-aware collection notes:
 
 The following sources were checked and recorded in `docs/data-collection-todo-v2.md`:
 
-- COSRX Korea: `https://cosrx.co.kr/robots.txt`
-  - Allows `/`, disallows `/makeshop/`.
-  - Sitemap has 216 product-like `shop/shopdetail.html` URLs.
-  - Raw URL candidates are saved in `data/cosrx-korea-products.raw.json`.
-  - Detail/category requests returned MakeShop anti-abuse block content, so runtime normalization remains blocked pending approved feed/API or permission.
 - Sulwhasoo US: `https://us.sulwhasoo.com/robots.txt`
   - Shopify storefront, public product catalog allowed.
   - UCP/MCP discovery available.
@@ -183,7 +172,6 @@ Current blocked or incomplete merchants:
 - Lotte Wellfood: valid robots/source still needs confirmation.
 - Lotte Chilsung: official commerce source still needs confirmation.
 - CJ OnStyle: robots response ambiguous, returned HTML during audit.
-- COSRX: candidate URL collection exists, but detail normalization is blocked by MakeShop anti-abuse response.
 - Sulwhasoo US: runtime collector implemented; 500 requires variants, bundles, additional locales, or partner feed.
 - Innisfree JP: runtime collector implemented; 500 requires variants, additional locales, or partner feed.
 
@@ -249,7 +237,7 @@ Runtime catalog counts after cleanup:
 - `lotte`: 3 sample products
 - `daiso`: 2 sample products
 - Runtime merchant count: 10
-- Audited collection source count in `data/merchant-collection-status.json`: 29
+- Audited collection source count in `data/merchant-collection-status.json`: 28
 - Runtime product image coverage: 2,750 / 2,750 products have image URLs.
 - Graph outputs include `graphProducts` so the widget can resolve graph edge IDs into visual product nodes.
 
@@ -258,7 +246,7 @@ Runtime catalog counts after cleanup:
 - `src/data/catalog.ts` removes sample products for a merchant when a real collected dataset exists.
 - `src/mcp/resources.ts` includes CSP image/redirect domains for Amore, Olive Young, Hi-Mart, Kurly, StyleKorean, Shopify merchants, and sample placeholder images.
 - `scripts/collect-merchant-products.ts` supports `COLLECT_MERCHANTS` so a single merchant can be refreshed without re-running all collectors.
-- `scripts/collect-merchant-products.ts` includes sitemap + JSON-LD collection for Kurly, StyleKorean, and Lotte Hi-Mart; Shopify catalog collection for Sulwhasoo US and Innisfree JP; and COSRX sitemap-candidate capture.
+- `scripts/collect-merchant-products.ts` includes sitemap + JSON-LD collection for Kurly, StyleKorean, and Lotte Hi-Mart; Shopify catalog collection for Sulwhasoo US and Innisfree JP.
 - `scripts/lib/robots.ts` provides robots parsing, audit, allow/disallow evaluation, and crawl-delay support.
 - Logs and pid files are intentionally ignored through `.gitignore`.
 
